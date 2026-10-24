@@ -1,0 +1,169 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-bg: 248 250 252;
+    --color-surface: 255 255 255;
+    --color-surface-2: 241 245 249;
+    --color-border: 226 232 240;
+    --color-text: 15 23 42;
+    --color-text-muted: 100 116 139;
+    --color-primary: 13 148 136;
+    --color-primary-hover: 15 118 110;
+    --color-primary-soft: 204 251 241;
+    --color-accent: 8 145 178;
+    --color-success: 22 163 74;
+    --color-success-soft: 220 252 231;
+    --color-warning: 202 138 4;
+    --color-warning-soft: 254 249 195;
+    --color-error: 220 38 38;
+    --color-error-soft: 254 226 226;
+  }
+
+  .dark {
+    --color-bg: 15 23 42;
+    --color-surface: 30 41 59;
+    --color-surface-2: 51 65 85;
+    --color-border: 51 65 85;
+    --color-text: 241 245 249;
+    --color-text-muted: 148 163 184;
+    --color-primary: 45 212 191;
+    --color-primary-hover: 94 234 212;
+    --color-primary-soft: 17 94 89;
+    --color-accent: 34 211 238;
+    --color-success: 74 222 128;
+    --color-success-soft: 20 83 45;
+    --color-warning: 250 204 21;
+    --color-warning-soft: 113 63 18;
+    --color-error: 248 113 113;
+    --color-error-soft: 127 29 29;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: rgb(var(--color-bg));
+    color: rgb(var(--color-text));
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  *:focus-visible {
+    outline: 2px solid rgb(var(--color-primary));
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+@layer components {
+  .surface {
+    background-color: rgb(var(--color-surface));
+    border: 1px solid rgb(var(--color-border));
+  }
+  .surface-2 {
+    background-color: rgb(var(--color-surface-2));
+    border: 1px solid rgb(var(--color-border));
+  }
+  .text-muted {
+    color: rgb(var(--color-text-muted));
+  }
+  .text-primary {
+    color: rgb(var(--color-primary));
+  }
+  .text-success {
+    color: rgb(var(--color-success));
+  }
+  .text-error {
+    color: rgb(var(--color-error));
+  }
+  .text-warning {
+    color: rgb(var(--color-warning));
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    background-color: rgb(var(--color-primary));
+    color: rgb(255 255 255);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background-color: rgb(var(--color-primary-hover));
+  }
+  .btn-secondary {
+    background-color: rgb(var(--color-surface-2));
+    color: rgb(var(--color-text));
+    border: 1px solid rgb(var(--color-border));
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background-color: rgb(var(--color-primary-soft));
+  }
+  .btn-ghost {
+    color: rgb(var(--color-text-muted));
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background-color: rgb(var(--color-surface-2));
+    color: rgb(var(--color-text));
+  }
+
+  .card {
+    background-color: rgb(var(--color-surface));
+    border: 1px solid rgb(var(--color-border));
+    border-radius: 12px;
+  }
+
+  .input {
+    @apply w-full rounded-lg px-3 py-2 text-sm transition-colors;
+    background-color: rgb(var(--color-surface));
+    border: 1px solid rgb(var(--color-border));
+    color: rgb(var(--color-text));
+  }
+  .input:focus {
+    outline: none;
+    border-color: rgb(var(--color-primary));
+    box-shadow: 0 0 0 3px rgb(var(--color-primary) / 0.15);
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .badge-primary {
+    background-color: rgb(var(--color-primary-soft));
+    color: rgb(var(--color-primary));
+  }
+  .badge-success {
+    background-color: rgb(var(--color-success-soft));
+    color: rgb(var(--color-success));
+  }
+  .badge-warning {
+    background-color: rgb(var(--color-warning-soft));
+    color: rgb(var(--color-warning));
+  }
+  .badge-error {
+    background-color: rgb(var(--color-error-soft));
+    color: rgb(var(--color-error));
+  }
+  .badge-neutral {
+    background-color: rgb(var(--color-surface-2));
+    color: rgb(var(--color-text-muted));
+  }
+}
+
+/* Smooth scroll for sidebar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: rgb(var(--color-border));
+  border-radius: 4px;
+}
