@@ -1,9 +1,10 @@
 import { useApp } from '@/context/AppContext';
 import { Spinner } from '@/components/ui';
+import { t } from '@/i18n';
 
 export function Loading({ label }: { label?: string }) {
   const { ready } = useApp();
-  const l = label ?? 'Загрузка...';
+  const l = label ?? t('common.loading');
   if (ready) return null;
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
