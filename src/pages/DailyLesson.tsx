@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Play, Pause, CheckCircle2, RotateCcw, ArrowRight } from 'lucide-react';
 import { useTrainerData } from '@/hooks/useTrainerData';
 import { GRAMMAR_EXERCISES, getExerciseById } from '@/data/exercises';
-import { selectDailyLesson } from '@/engine/learning';
+import { selectDailyLesson, todayKey } from '@/engine/learning';
 import { getLessonState, saveLessonState, clearLessonState } from '@/data/db';
 import type { DailyLessonState, Exercise, AttemptRecord } from '@/types';
 import { ExercisePlayer } from '@/components/ExercisePlayer';
@@ -22,7 +22,7 @@ export default function DailyLesson() {
   const [startTime, setStartTime] = useState<number>(0);
   const [correctCount, setCorrectCount] = useState(0);
 
-  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const today = useMemo(() => todayKey(), []);
 
   const loadState = useCallback(async () => {
     const saved = await getLessonState();

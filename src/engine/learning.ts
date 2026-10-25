@@ -8,12 +8,17 @@ import type {
 } from '@/types';
 import { GRAMMAR_TOPICS } from '@/data/grammarTopics';
 
-export function todayKey(d: Date = new Date()): string {
-  return d.toISOString().slice(0, 10);
+// Local calendar date (YYYY-MM-DD). toISOString() would give the UTC date,
+// which shifts the day for users east/west of UTC around midnight.
+export function dateKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
-export function dateKey(d: Date): string {
-  return d.toISOString().slice(0, 10);
+export function todayKey(d: Date = new Date()): string {
+  return dateKey(d);
 }
 
 const DAY_MS = 86_400_000;
@@ -27,6 +32,8 @@ export function computeStreak(
   attempts.forEach((a) => days.add(dateKey(new Date(a.createdAt))));
   let streak = 0;
   let cursor = new Date();
+  // No study yet today does not break the streak: count back from yesterday.
+  if (!days.has(dateKey(cursor))) cursor = new Date(cursor.getTime() - DAY_MS);
   while (days.has(dateKey(cursor))) {
     streak += 1;
     cursor = new Date(cursor.getTime() - DAY_MS);
@@ -140,8 +147,9 @@ export function computeIntervalDays(attempts: number, success: boolean): number 
 export function rankWeakTopics(
   accuracyByTopic: { topicId: TopicId; total: number; correct: number; accuracy: number }[],
 ): TopicId[] {
+  // A topic is weak only if accuracy is below 70% after at least 2 attempts.
   return [...accuracyByTopic]
-    .filter((t) => t.total >= 1)
+    .filter((t) => t.total >= 2 && t.accuracy < 70)
     .sort((a, b) => a.accuracy - b.accuracy)
     .map((t) => t.topicId);
 }
