@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   GraduationCap,
   Target,
@@ -13,14 +13,57 @@ import {
 import { useTrainerData } from '@/hooks/useTrainerData';
 import { useApp } from '@/context/AppContext';
 import { computeStats } from '@/engine/learning';
+import { getLessonState } from '@/data/db';
 import { GRAMMAR_TOPICS, getTopicById } from '@/data/grammarTopics';
-import { t } from '@/i18n';
+import { t, getLang } from '@/i18n';
 import { SectionTitle, StatCard, EmptyState } from '@/components/ui';
 import { Illustration } from '@/components/Illustration';
+
+type LessonCard =
+  | { status: 'none' }
+  | { status: 'inProgress'; step: number; total: number }
+  | { status: 'done' };
+
+// TODO: move these strings into the i18n dictionaries.
+const LESSON_LABELS = {
+  ru: {
+    start: 'Начать урок на сегодня',
+    resume: 'Продолжить урок',
+    step: (n: number, total: number) => `задание ${n} из ${total}`,
+    done: 'Урок на сегодня завершён',
+  },
+  en: {
+    start: 'Start today’s lesson',
+    resume: 'Continue lesson',
+    step: (n: number, total: number) => `exercise ${n} of ${total}`,
+    done: 'Today’s lesson is complete',
+  },
+} as const;
 
 export default function Dashboard() {
   const { preferences } = useApp();
   const { attempts, mistakes, sessions, profile, loading } = useTrainerData();
+  const [lesson, setLesson] = useState<LessonCard | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    getLessonState()
+      .then((s) => {
+        if (!alive) return;
+        if (!s) setLesson({ status: 'none' });
+        else if (s.completedAt) setLesson({ status: 'done' });
+        else {
+          const total = s.exerciseIds.length;
+          setLesson({ status: 'inProgress', step: Math.min(s.currentIndex + 1, total), total });
+        }
+      })
+      .catch(() => {
+        if (alive) setLesson({ status: 'none' });
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const stats = useMemo(
     () => computeStats(attempts, sessions, mistakes),
@@ -34,6 +77,15 @@ export default function Dashboard() {
   const notAssessed = profile.currentLevel === 'not_assessed';
   const hasActivity = attempts.length > 0 || sessions.length > 0;
   const frequentErrors = stats.mostFrequentErrors.slice(0, 3);
+  const labels = LESSON_LABELS[getLang()];
+  const lessonText =
+    lesson === null
+      ? ''
+      : lesson.status === 'inProgress'
+        ? `${labels.resume} · ${labels.step(lesson.step, lesson.total)}`
+        : lesson.status === 'done'
+          ? labels.done
+          : labels.start;
 
   return (
     <div>
@@ -158,7 +210,7 @@ export default function Dashboard() {
           </div>
           <div className="flex-1">
             <p className="font-medium">{t('nav.dailyLesson')}</p>
-            <p className="text-sm text-muted">{t('dashboard.continueLearning')}</p>
+            <p className="min-h-[1.25rem] text-sm text-muted">{lessonText}</p>
           </div>
           <ArrowRight className="h-5 w-5 text-muted transition-transform group-hover:translate-x-1" />
         </Link>
