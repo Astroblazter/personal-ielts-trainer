@@ -9,6 +9,7 @@ import type {
 } from '@/types';
 import {
   getAllAttempts,
+  getAttemptsByExercise,
   getAllMistakes,
   getAllSessions,
   getDiagnosticResults,
@@ -30,6 +31,11 @@ import {
 import { computeIntervalDays, todayKey } from '@/engine/learning';
 
 const DAY_MS = 86_400_000;
+
+// A mistake is closed ("understood") after this many correct answers in a row.
+const MASTERY_STREAK = 3;
+// Once closed, it is only re-checked after this many days.
+const MASTERED_REVIEW_DAYS = 30;
 
 function genId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -139,6 +145,28 @@ export function useTrainerData(): TrainerData {
       const rec: AttemptRecord = { ...a, id: genId('att'), createdAt: Date.now() };
       await addAttempt(rec);
       setAttempts((prev) => [...prev, rec]);
+
+      // Correct answer on an exercise that is in the mistakes notebook: move it forward.
+      if (a.correct) {
+        const open = await findMistakeByExerciseId(a.exerciseId);
+        if (open) {
+          const history = (await getAttemptsByExercise(a.exerciseId)).sort(
+            (x, y) => x.createdAt - y.createdAt,
+          );
+          let streak = 0;
+          for (let i = history.length - 1; i >= 0 && history[i].correct; i--) streak += 1;
+          const mastered = streak >= MASTERY_STREAK;
+          const days = mastered ? MASTERED_REVIEW_DAYS : computeIntervalDays(streak, true);
+          const moved: MistakeEntry = {
+            ...open,
+            status: mastered ? 'understood' : open.status,
+            nextReviewAt: Date.now() + days * DAY_MS,
+            reviewIntervalDays: days,
+          };
+          await updateMistake(moved);
+          setMistakes((prev) => prev.map((x) => (x.id === moved.id ? moved : x)));
+        }
+      }
 
       // If incorrect and user wants it in mistakes (or by default for wrong answers)
       if (!a.correct && opts?.addToMistakes) {
