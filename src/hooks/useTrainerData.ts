@@ -27,16 +27,12 @@ import {
   deleteVocabWord as dbDeleteVocab,
   findMistakeByExerciseId,
 } from '@/data/db';
-import { computeIntervalDays } from '@/engine/learning';
+import { computeIntervalDays, todayKey } from '@/engine/learning';
 
 const DAY_MS = 86_400_000;
 
 function genId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function todayKey(d: Date = new Date()): string {
-  return d.toISOString().slice(0, 10);
 }
 
 export interface ErrorCategoryMap {
