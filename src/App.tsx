@@ -4,6 +4,7 @@ import { AppProvider } from '@/context/AppContext';
 import { AppLayout } from '@/components/AppLayout';
 import { Loading } from '@/components/Loading';
 import { initDb } from '@/data/db';
+import { t } from '@/i18n';
 import Dashboard from '@/pages/Dashboard';
 import DailyLesson from '@/pages/DailyLesson';
 import GrammarLab from '@/pages/GrammarLab';
@@ -34,7 +35,7 @@ export default function App() {
     <AppProvider>
       {!dbReady ? (
         <div className="flex min-h-screen items-center justify-center bg-[rgb(var(--color-bg))]">
-          <Loading label="Загрузка данных..." />
+          <Loading label={t('common.loadingData')} />
         </div>
       ) : (
         <BrowserRouter>
