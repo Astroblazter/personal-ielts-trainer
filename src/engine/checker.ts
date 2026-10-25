@@ -1,4 +1,5 @@
 import type { Exercise } from '@/types';
+import { t } from '@/i18n';
 
 export type CheckOutcome = 'correct' | 'incorrect' | 'needs_review';
 
@@ -56,7 +57,7 @@ export function checkFillBlank(
     suggestedCorrection: exercise.data.acceptedAnswers[0],
     detail: correct
       ? undefined
-      : `Принимаются: ${exercise.data.acceptedAnswers.join(', ')}`,
+      : t('checker.accepted', { answers: exercise.data.acceptedAnswers.join(', ') }),
   };
 }
 
@@ -72,7 +73,7 @@ export function checkFindError(
   const userCorr = normalizeLoose(correctionText);
   const targetCorr = normalizeLoose(exercise.data.correction);
   const corrOk = userCorr.length > 0 && userCorr === targetCorr;
-  const userAnswer = `Сегмент ${selectedSegmentIndex + 1} → "${correctionText}"`;
+  const userAnswer = `#${selectedSegmentIndex + 1} → "${correctionText}"`;
   if (segOk && corrOk) {
     return { outcome: 'correct', userAnswer, suggestedCorrection: exercise.data.correction };
   }
@@ -81,7 +82,7 @@ export function checkFindError(
       outcome: 'incorrect',
       userAnswer,
       suggestedCorrection: exercise.data.correction,
-      detail: 'Сегмент найден верно, но исправление не совпадает.',
+      detail: t('checker.segmentOkFixWrong'),
     };
   }
   if (!segOk && corrOk) {
@@ -89,14 +90,17 @@ export function checkFindError(
       outcome: 'incorrect',
       userAnswer,
       suggestedCorrection: exercise.data.correction,
-      detail: `Неверный сегмент. Правильный — №${exercise.data.errorSegmentIndex + 1}.`,
+      detail: t('checker.wrongSegment', { n: exercise.data.errorSegmentIndex + 1 }),
     };
   }
   return {
     outcome: 'incorrect',
     userAnswer,
     suggestedCorrection: exercise.data.correction,
-    detail: `Ошибочный сегмент — №${exercise.data.errorSegmentIndex + 1} («${exercise.data.correction}»).`,
+    detail: t('checker.errorSegment', {
+      n: exercise.data.errorSegmentIndex + 1,
+      correction: exercise.data.correction,
+    }),
   };
 }
 
@@ -115,7 +119,7 @@ export function checkWriteSentence(
       outcome: 'incorrect',
       userAnswer: answer,
       suggestedCorrection: '',
-      detail: 'Ответ пустой.',
+      detail: t('checker.empty'),
     };
   }
   const patterns = exercise.data.acceptedPatterns.map((p) => normalize(p));
@@ -140,8 +144,7 @@ export function checkWriteSentence(
       outcome: 'needs_review',
       userAnswer: answer,
       suggestedCorrection: exercise.exampleEn,
-      detail:
-        'Не удалось надёжно проверить ответ. Целевые слова найдены, но ожидаемый шаблон не распознан. Можно отметить «Мой ответ может быть верным».',
+      detail: t('checker.needsReview'),
     };
   }
 
@@ -149,7 +152,7 @@ export function checkWriteSentence(
     outcome: 'incorrect',
     userAnswer: answer,
     suggestedCorrection: exercise.exampleEn,
-    detail: 'Ответ не содержит ожидаемых элементов.',
+    detail: t('checker.missingElements'),
   };
 }
 
