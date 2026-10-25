@@ -166,14 +166,14 @@ export function ExercisePlayer({
               {selectedSegment !== null && (
                 <div>
                   <label className="mb-1 block text-xs text-muted">
-                    Исправление для выбранной части:
+                    {t('exercise.correctionFor')}
                   </label>
                   <input
                     type="text"
                     value={correctionText}
                     onChange={(e) => setCorrectionText(e.target.value)}
                     className="input"
-                    placeholder="Введите исправленную форму"
+                    placeholder={t('exercise.correctionPlaceholder')}
                     autoFocus
                   />
                 </div>
