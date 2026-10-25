@@ -9,12 +9,17 @@ export interface CheckResult {
   detail?: string;
 }
 
+// Phones often insert typographic quotes (’ “ ”); treat them as plain ' and ".
+function unifyQuotes(s: string): string {
+  return s.replace(/[\u2018\u2019\u02BC`]/g, "'").replace(/[\u201C\u201D]/g, '"');
+}
+
 function normalize(s: string): string {
-  return s.trim().toLowerCase().replace(/[.,!?;:]+$/g, '').replace(/\s+/g, ' ');
+  return unifyQuotes(s).trim().toLowerCase().replace(/[.,!?;:]+$/g, '').replace(/\s+/g, ' ');
 }
 
 function normalizeLoose(s: string): string {
-  return s.trim().toLowerCase().replace(/\s+/g, ' ');
+  return unifyQuotes(s).trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
 export function checkMultipleChoice(
