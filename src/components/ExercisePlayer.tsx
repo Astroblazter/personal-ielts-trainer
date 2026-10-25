@@ -56,7 +56,8 @@ export function ExercisePlayer({
       answerValue = sentenceText;
     }
     setResult(r);
-    onAnswered?.(r, addToMistakes || !r.outcome.includes('correct') ? true : false, flagged)?.catch((e) => {
+    // Wrong answers always go to the mistakes notebook; "needs review" ones only on request.
+    onAnswered?.(r, r.outcome === 'incorrect' || addToMistakes, flagged)?.catch((e) => {
       console.error('Failed to save attempt', e);
     });
     // void unused
@@ -166,14 +167,14 @@ export function ExercisePlayer({
               {selectedSegment !== null && (
                 <div>
                   <label className="mb-1 block text-xs text-muted">
-                    Исправление для выбранной части:
+                    {t('exercise.correctionFor')}
                   </label>
                   <input
                     type="text"
                     value={correctionText}
                     onChange={(e) => setCorrectionText(e.target.value)}
                     className="input"
-                    placeholder="Введите исправленную форму"
+                    placeholder={t('exercise.correctionPlaceholder')}
                     autoFocus
                   />
                 </div>
@@ -201,15 +202,6 @@ export function ExercisePlayer({
             <button className="btn btn-primary" onClick={submit} disabled={!canSubmit(exercise, selectedOption, fillText, selectedSegment, correctionText, sentenceText)}>
               {t('common.submit')}
             </button>
-            <label className="flex cursor-pointer items-center gap-2 text-xs text-muted">
-              <input
-                type="checkbox"
-                checked={addToMistakes}
-                onChange={(e) => setAddToMistakes(e.target.checked)}
-                className="accent-[rgb(var(--color-primary))]"
-              />
-              {t('common.addMistake')}
-            </label>
           </div>
         </div>
       )}
@@ -275,7 +267,7 @@ export function ExercisePlayer({
           )}
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            {result.outcome !== 'correct' && !addToMistakes && (
+            {result.outcome === 'needs_review' && !addToMistakes && (
               <button
                 className="btn btn-secondary"
                 onClick={() => {

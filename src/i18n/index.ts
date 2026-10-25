@@ -47,6 +47,7 @@ const ru: Dict = {
     relatedTopic: 'Связанная тема',
     backTo: 'Назад',
     loading: 'Загрузка...',
+    loadingData: 'Загрузка данных...',
     empty: 'Пока пусто',
   },
   dashboard: {
@@ -63,6 +64,10 @@ const ru: Dict = {
     topicsDue: 'Темы к повторению',
     lastLesson: 'Последний урок',
     continueLearning: 'Продолжить обучение',
+    lessonStart: 'Начать урок на сегодня',
+    lessonResume: 'Продолжить урок',
+    lessonStep: 'задание {n} из {total}',
+    lessonDone: 'Урок на сегодня завершён',
     startDiagnostic: 'Пройти диагностику',
     recommendation: 'Рекомендация на сегодня',
     welcomeTitle: 'Добро пожаловать!',
@@ -182,6 +187,20 @@ const ru: Dict = {
     confirmMerge: 'Импорт слиянием добавит данные к существующим. Продолжить?',
     importSuccess: 'Данные импортированы',
     importError: 'Ошибка импорта: файл некорректен',
+  },
+  exercise: {
+    correctionFor: 'Исправление для выбранной части:',
+    correctionPlaceholder: 'Введите исправленную форму',
+  },
+  checker: {
+    accepted: 'Принимаются: {answers}',
+    segmentOkFixWrong: 'Сегмент найден верно, но исправление не совпадает.',
+    wrongSegment: 'Неверный сегмент. Правильный — №{n}.',
+    errorSegment: 'Ошибочный сегмент — №{n} («{correction}»).',
+    empty: 'Ответ пустой.',
+    needsReview:
+      'Не удалось надёжно проверить ответ. Целевые слова найдены, но ожидаемый шаблон не распознан. Можно отметить «Мой ответ может быть верным».',
+    missingElements: 'Ответ не содержит ожидаемых элементов.',
   },
   comingSoon: {
     title: 'В разработке',
@@ -345,6 +364,7 @@ const en: Dict = {
     relatedTopic: 'Related topic',
     backTo: 'Back to',
     loading: 'Loading...',
+    loadingData: 'Loading data...',
     empty: 'Nothing yet',
   },
   dashboard: {
@@ -361,6 +381,10 @@ const en: Dict = {
     topicsDue: 'Topics due for review',
     lastLesson: 'Last lesson',
     continueLearning: 'Continue learning',
+    lessonStart: 'Start today’s lesson',
+    lessonResume: 'Continue lesson',
+    lessonStep: 'exercise {n} of {total}',
+    lessonDone: 'Today’s lesson is complete',
     startDiagnostic: 'Start diagnostic test',
     recommendation: 'Today\'s recommendation',
     welcomeTitle: 'Welcome!',
@@ -480,6 +504,20 @@ const en: Dict = {
     confirmMerge: 'Merge import will add data to existing records. Continue?',
     importSuccess: 'Data imported',
     importError: 'Import error: invalid file',
+  },
+  exercise: {
+    correctionFor: 'Correction for the selected part:',
+    correctionPlaceholder: 'Type the corrected form',
+  },
+  checker: {
+    accepted: 'Accepted: {answers}',
+    segmentOkFixWrong: 'You found the right part, but the correction does not match.',
+    wrongSegment: 'Wrong part. The correct one is #{n}.',
+    errorSegment: 'The error is in part #{n} (“{correction}”).',
+    empty: 'The answer is empty.',
+    needsReview:
+      'The answer could not be checked reliably. The target words are there, but the expected pattern was not recognised. You can mark “My answer may be correct”.',
+    missingElements: 'The answer does not contain the expected elements.',
   },
   comingSoon: {
     title: 'Coming soon',
@@ -610,7 +648,7 @@ export function getLang(): Lang {
   return currentLang;
 }
 
-export function t(path: string): string {
+export function t(path: string, params?: Record<string, string | number>): string {
   const parts = path.split('.');
   let cur: unknown = dictionaries[currentLang];
   for (const p of parts) {
@@ -620,5 +658,7 @@ export function t(path: string): string {
       return path;
     }
   }
-  return typeof cur === 'string' ? cur : path;
+  if (typeof cur !== 'string') return path;
+  if (!params) return cur;
+  return cur.replace(/\{(\w+)\}/g, (m, k: string) => (k in params ? String(params[k]) : m));
 }

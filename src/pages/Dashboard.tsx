@@ -15,7 +15,7 @@ import { useApp } from '@/context/AppContext';
 import { computeStats } from '@/engine/learning';
 import { getLessonState } from '@/data/db';
 import { GRAMMAR_TOPICS, getTopicById } from '@/data/grammarTopics';
-import { t, getLang } from '@/i18n';
+import { t } from '@/i18n';
 import { SectionTitle, StatCard, EmptyState } from '@/components/ui';
 import { Illustration } from '@/components/Illustration';
 
@@ -23,22 +23,6 @@ type LessonCard =
   | { status: 'none' }
   | { status: 'inProgress'; step: number; total: number }
   | { status: 'done' };
-
-// TODO: move these strings into the i18n dictionaries.
-const LESSON_LABELS = {
-  ru: {
-    start: 'Начать урок на сегодня',
-    resume: 'Продолжить урок',
-    step: (n: number, total: number) => `задание ${n} из ${total}`,
-    done: 'Урок на сегодня завершён',
-  },
-  en: {
-    start: 'Start today’s lesson',
-    resume: 'Continue lesson',
-    step: (n: number, total: number) => `exercise ${n} of ${total}`,
-    done: 'Today’s lesson is complete',
-  },
-} as const;
 
 export default function Dashboard() {
   const { preferences } = useApp();
@@ -77,15 +61,14 @@ export default function Dashboard() {
   const notAssessed = profile.currentLevel === 'not_assessed';
   const hasActivity = attempts.length > 0 || sessions.length > 0;
   const frequentErrors = stats.mostFrequentErrors.slice(0, 3);
-  const labels = LESSON_LABELS[getLang()];
   const lessonText =
     lesson === null
       ? ''
       : lesson.status === 'inProgress'
-        ? `${labels.resume} · ${labels.step(lesson.step, lesson.total)}`
+        ? `${t('dashboard.lessonResume')} · ${t('dashboard.lessonStep', { n: lesson.step, total: lesson.total })}`
         : lesson.status === 'done'
-          ? labels.done
-          : labels.start;
+          ? t('dashboard.lessonDone')
+          : t('dashboard.lessonStart');
 
   return (
     <div>
