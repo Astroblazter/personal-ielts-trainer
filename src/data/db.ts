@@ -12,6 +12,7 @@ import type {
 } from '@/types';
 import { SEED_VOCABULARY } from '@/data/vocabulary';
 import { assertUniqueExerciseIds } from '@/data/exercises';
+import { todayKey } from '@/engine/learning';
 
 interface TrainerDB extends DBSchema {
   attempts: { key: string; value: AttemptRecord };
@@ -34,18 +35,19 @@ function getDb(): Promise<IDBPDatabase<TrainerDB>> {
   if (!dbPromise) {
     dbPromise = openDB<TrainerDB>(DB_NAME, DB_VERSION, {
       upgrade(db, oldVersion) {
-        const attempts = db.createObjectStore('attempts', { keyPath: 'id' });
-        attempts; // store created
-        const mistakes = db.createObjectStore('mistakes', { keyPath: 'id' });
-        mistakes.createIndex('by-status', 'status');
-        mistakes.createIndex('by-topic', 'topicId');
-        const vocab = db.createObjectStore('vocabulary', { keyPath: 'id' });
-        vocab.createIndex('by-topic', 'topicId');
-        db.createObjectStore('sessions', { keyPath: 'date' });
-        db.createObjectStore('diagnostic', { keyPath: 'id' });
-        db.createObjectStore('lessonState', { keyPath: 'date' });
-        db.createObjectStore('preferences');
-        db.createObjectStore('profile');
+        if (oldVersion < 1) {
+          db.createObjectStore('attempts', { keyPath: 'id' });
+          const mistakes = db.createObjectStore('mistakes', { keyPath: 'id' });
+          mistakes.createIndex('by-status', 'status');
+          mistakes.createIndex('by-topic', 'topicId');
+          const vocab = db.createObjectStore('vocabulary', { keyPath: 'id' });
+          vocab.createIndex('by-topic', 'topicId');
+          db.createObjectStore('sessions', { keyPath: 'date' });
+          db.createObjectStore('diagnostic', { keyPath: 'id' });
+          db.createObjectStore('lessonState', { keyPath: 'date' });
+          db.createObjectStore('preferences');
+          db.createObjectStore('profile');
+        }
         if (oldVersion < 2) {
           const sectionAttempts = db.createObjectStore('sectionAttempts', { keyPath: 'id' });
           sectionAttempts.createIndex('by-source', 'source');
@@ -62,7 +64,6 @@ function getDb(): Promise<IDBPDatabase<TrainerDB>> {
 
 const PREF_KEY = 'preferences';
 const PROFILE_KEY = 'profile';
-const LESSON_KEY = 'today';
 
 // ── Preferences ─────────────────────────────────────────────────────────
 const DEFAULT_PREFS: Preferences = {
@@ -215,7 +216,8 @@ export async function getDiagnosticResults(): Promise<DiagnosticResult[]> {
 // ── Daily lesson state ──────────────────────────────────────────────────
 export async function getLessonState(): Promise<DailyLessonState | undefined> {
   const db = await getDb();
-  return db.get('lessonState', LESSON_KEY);
+  // The store's keyPath is `date`, so the record lives under today's date key.
+  return db.get('lessonState', todayKey());
 }
 
 export async function saveLessonState(state: DailyLessonState): Promise<void> {
@@ -225,7 +227,7 @@ export async function saveLessonState(state: DailyLessonState): Promise<void> {
 
 export async function clearLessonState(): Promise<void> {
   const db = await getDb();
-  await db.delete('lessonState', LESSON_KEY);
+  await db.delete('lessonState', todayKey());
 }
 
 // ── Section attempts (Reading / Listening / Writing / Speaking / Mock) ───
@@ -268,7 +270,7 @@ export async function exportBackup(): Promise<BackupData> {
     db.getAll('sessions'),
     db.getAll('diagnostic'),
     db.getAll('sectionAttempts').catch(() => []),
-    db.get('lessonState', LESSON_KEY).catch(() => undefined),
+    db.get('lessonState', todayKey()).catch(() => undefined),
   ]);
   const preferences = await getPreferences();
   const profile = await getProfile();
