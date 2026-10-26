@@ -122,4 +122,107 @@ export default function MyMistakes() {
         }
       />
 
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center">
+        <Illustration
+          name="mistakes"
+          size="inline"
+          alt="Fixing mistakes in a notebook"
+          className="shrink-0"
+        />
+      </div>
+
+      <div className="mb-4 flex flex-wrap gap-2">
+        {filters.map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setFilter(f.key)}
+            className={`btn ${filter === f.key ? 'btn-primary' : 'btn-secondary'}`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={undefined}
+          title={t('mistakes.noMistakes')}
+        >
+          <Illustration
+            name="emptyMistakes"
+            size="inline"
+            alt="No mistakes — notebook closed"
+            className="mt-2"
+          />
+        </EmptyState>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((m: MistakeEntry) => {
+            const exercise = getExerciseById(m.exerciseId);
+            const topic = getTopicById(m.topicId);
+            return (
+              <div key={m.id} className="card p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="badge badge-neutral">
+                        {t(`errorCategory.${m.category}`)}
+                      </span>
+                      {topic && (
+                        <span className="badge badge-primary">{topic.titleRu}</span>
+                      )}
+                      <span className="text-xs text-muted">
+                        {t('mistakes.attempts')}: {m.attempts}
+                      </span>
+                    </div>
+                    {exercise && (
+                      <p className="mt-2 text-sm font-medium">{exercise.questionEn}</p>
+                    )}
+                    <p className="mt-1 text-sm text-muted">
+                      <span className="text-error">{m.userAnswer}</span>
+                      {' → '}
+                      <span className="text-success">{m.suggestedCorrection}</span>
+                    </p>
+                    {m.explanationRu && (
+                      <p className="mt-1 text-xs text-muted">{m.explanationRu}</p>
+                    )}
+                    <p className="mt-1 text-xs text-muted">
+                      {t('mistakes.dateOfMistake')}: {new Date(m.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {m.status !== 'understood' && (
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => setMistakeStatus(m.id, 'understood')}
+                    >
+                      <Check className="h-4 w-4" />
+                      {t('mistakes.markUnderstood')}
+                    </button>
+                  )}
+                  {m.status !== 'archived' && (
+                    <button
+                      className="btn btn-ghost"
+                      onClick={() => setMistakeStatus(m.id, 'archived')}
+                    >
+                      {t('mistakes.archived')}
+                    </button>
+                  )}
+                  <button
+                    className="btn btn-ghost text-error"
+                    onClick={() => removeMistake(m.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {t('mistakes.remove')}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}

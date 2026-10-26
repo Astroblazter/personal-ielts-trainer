@@ -140,4 +140,20 @@ export default function GrammarLab() {
           onAdvance={advance}
           showAdvance
           advanceLabel={
-            currentIndex + 1
+            currentIndex + 1 >= exerciseQueue.length
+              ? t('common.complete')
+              : t('common.next')
+          }
+        />
+        {currentIndex + 1 >= exerciseQueue.length && (
+          <div className="mt-4 flex gap-2">
+            <button className="btn btn-secondary" onClick={backToTopics}>
+              <ArrowLeft className="h-4 w-4" />
+              {t('grammar.chooseTopic')}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
