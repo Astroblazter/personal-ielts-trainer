@@ -3,14 +3,17 @@ import { ArrowLeft, ArrowRight, FlaskConical } from 'lucide-react';
 import { GRAMMAR_TOPICS } from '@/data/grammarTopics';
 import { getExercisesByTopic } from '@/data/exercises';
 import { useTrainerData } from '@/hooks/useTrainerData';
-import type { Exercise, AttemptRecord } from '@/types';
+import { useAnswerRecorder } from '@/hooks/useAnswerRecorder';
+import type { CheckResult } from '@/engine/checker';
+import type { Exercise } from '@/types';
 import { ExercisePlayer } from '@/components/ExercisePlayer';
 import { SectionTitle, EmptyState } from '@/components/ui';
 import { Illustration } from '@/components/Illustration';
 import { t } from '@/i18n';
 
 export default function GrammarLab() {
-  const { recordAttempt } = useTrainerData();
+  const { recordAttempt, upsertMistake, refresh } = useTrainerData();
+  const recordAnswer = useAnswerRecorder('grammar_lab', recordAttempt, upsertMistake, refresh);
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const [exerciseQueue, setExerciseQueue] = useState<Exercise[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -39,27 +42,12 @@ export default function GrammarLab() {
   };
 
   const handleAnswered = useCallback(
-    async (
-      result: { outcome: string; userAnswer: string; suggestedCorrection: string },
-      addToMistakes: boolean,
-      flagged: boolean,
-    ) => {
+    async (result: CheckResult, addToMistakes: boolean, flagged: boolean) => {
       const exercise = exerciseQueue[currentIndex];
       if (!exercise) return;
-      const isCorrect = result.outcome === 'correct';
-      const rec: Omit<AttemptRecord, 'id' | 'createdAt'> = {
-        exerciseId: exercise.id,
-        topicId: exercise.topicId,
-        type: exercise.type,
-        correct: isCorrect || flagged,
-        userAnswer: result.userAnswer,
-        suggestedCorrection: result.suggestedCorrection,
-        timeSpentMs: Date.now() - startTime,
-        source: 'grammar_lab',
-      };
-      await recordAttempt(rec, { addToMistakes: addToMistakes && !isCorrect });
+      await recordAnswer(exercise, result, addToMistakes, flagged, startTime);
     },
-    [exerciseQueue, currentIndex, startTime, recordAttempt],
+    [exerciseQueue, currentIndex, startTime, recordAnswer],
   );
 
   const advance = useCallback(() => {
@@ -152,20 +140,4 @@ export default function GrammarLab() {
           onAdvance={advance}
           showAdvance
           advanceLabel={
-            currentIndex + 1 >= exerciseQueue.length
-              ? t('common.complete')
-              : t('common.next')
-          }
-        />
-        {currentIndex + 1 >= exerciseQueue.length && (
-          <div className="mt-4 flex gap-2">
-            <button className="btn btn-secondary" onClick={backToTopics}>
-              <ArrowLeft className="h-4 w-4" />
-              {t('grammar.chooseTopic')}
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+            currentIndex + 1

@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Play, Pause, CheckCircle2, RotateCcw, ArrowRight } from 'lucide-react';
 import { useTrainerData } from '@/hooks/useTrainerData';
+import { useAnswerRecorder } from '@/hooks/useAnswerRecorder';
 import { GRAMMAR_EXERCISES, getExerciseById } from '@/data/exercises';
 import { selectDailyLesson, todayKey } from '@/engine/learning';
 import { getLessonState, saveLessonState, clearLessonState } from '@/data/db';
-import type { DailyLessonState, Exercise, AttemptRecord } from '@/types';
+import type { CheckResult } from '@/engine/checker';
+import type { DailyLessonState, Exercise } from '@/types';
 import { ExercisePlayer } from '@/components/ExercisePlayer';
 import { SectionTitle, EmptyState } from '@/components/ui';
 import { Illustration } from '@/components/Illustration';
@@ -15,14 +17,24 @@ type Phase = 'idle' | 'playing' | 'paused' | 'completed';
 
 export default function DailyLesson() {
   const navigate = useNavigate();
-  const { attempts, mistakes, recordAttempt, recordSession } = useTrainerData();
+  const { attempts, mistakes, recordAttempt, recordSession, upsertMistake, refresh } = useTrainerData();
   const [state, setState] = useState<DailyLessonState | null>(null);
   const [phase, setPhase] = useState<Phase>('idle');
   const [lessonExercises, setLessonExercises] = useState<Exercise[]>([]);
-  const [startTime, setStartTime] = useState<number>(0);
-  const [correctCount, setCorrectCount] = useState(0);
+  const recordAnswer = useAnswerRecorder('daily_lesson', recordAttempt, upsertMistake, refresh);
+
+  // When the current exercise was shown (reset on every new exercise and on resume).
+  const questionStartRef = useRef<number>(Date.now());
 
   const today = useMemo(() => todayKey(), []);
+  const currentIndex = state?.currentIndex;
+
+  // Correct answers = latest answer per exercise that is marked correct.
+  const correctCount = state ? Object.values(state.answers).filter((a) => a.correct).length : 0;
+
+  useEffect(() => {
+    if (phase === 'playing') questionStartRef.current = Date.now();
+  }, [phase, currentIndex]);
 
   const loadState = useCallback(async () => {
     const saved = await getLessonState();
@@ -32,8 +44,6 @@ export default function DailyLesson() {
         .map((id) => getExerciseById(id))
         .filter((e): e is Exercise => e !== undefined);
       setLessonExercises(exercises);
-      const answered = Object.values(saved.answers);
-      setCorrectCount(answered.filter((a) => a.correct).length);
       if (saved.completedAt) {
         setPhase('completed');
       } else if (saved.currentIndex < exercises.length) {
@@ -60,55 +70,24 @@ export default function DailyLesson() {
     setLessonExercises(selected);
     setState(fresh);
     setPhase('playing');
-    setStartTime(now);
-    setCorrectCount(0);
     await saveLessonState(fresh);
   }, [attempts, mistakes, today]);
 
   const handleAnswered = useCallback(
-    async (
-      result: { outcome: string; userAnswer: string; suggestedCorrection: string },
-      addToMistakes: boolean,
-      flagged: boolean,
-    ) => {
+    async (result: CheckResult, addToMistakes: boolean, flagged: boolean) => {
       if (!state) return;
       const exercise = lessonExercises[state.currentIndex];
       if (!exercise) return;
-      const isCorrect = result.outcome === 'correct';
-      const isNeedsReview = result.outcome === 'needs_review';
-
-      const rec: Omit<AttemptRecord, 'id' | 'createdAt'> = {
-        exerciseId: exercise.id,
-        topicId: exercise.topicId,
-        type: exercise.type,
-        correct: isCorrect || flagged,
-        userAnswer: result.userAnswer,
-        suggestedCorrection: result.suggestedCorrection,
-        timeSpentMs: Date.now() - startTime,
-        source: 'daily_lesson',
-      };
-      await recordAttempt(rec, { addToMistakes: addToMistakes && !isCorrect });
-
-      const nextCorrect = correctCount + (isCorrect ? 1 : 0);
-      setCorrectCount(nextCorrect);
-
-      const answerRecord: AttemptRecord = {
-        ...rec,
-        id: 'temp',
-        createdAt: Date.now(),
-      };
+      const saved = await recordAnswer(exercise, result, addToMistakes, flagged, questionStartRef.current);
+      if (!saved) return;
       const updated: DailyLessonState = {
         ...state,
-        answers: { ...state.answers, [exercise.id]: answerRecord },
+        answers: { ...state.answers, [exercise.id]: saved },
       };
       setState(updated);
       await saveLessonState(updated);
-
-      if (isNeedsReview && !flagged) {
-        // Don't auto-advance; let user decide
-      }
     },
-    [state, lessonExercises, startTime, correctCount, recordAttempt],
+    [state, lessonExercises, recordAnswer],
   );
 
   const advance = useCallback(async () => {
@@ -146,7 +125,6 @@ export default function DailyLesson() {
     setState(null);
     setPhase('idle');
     setLessonExercises([]);
-    setCorrectCount(0);
   }, []);
 
   if (phase === 'idle' && !state) {
@@ -192,7 +170,7 @@ export default function DailyLesson() {
   if (phase === 'completed') {
     const total = lessonExercises.length;
     const accuracy = total > 0 ? Math.round((correctCount / total) * 100) : 0;
-    const timeMin = Math.round((Date.now() - state.startedAt) / 60000);
+    const timeMin = Math.round(((state.completedAt ?? Date.now()) - state.startedAt) / 60000);
     return (
       <div>
         <SectionTitle title={t('lesson.title')} subtitle={t('lesson.completed')} />
