@@ -13,6 +13,10 @@ import { t } from '@/i18n';
 
 type Filter = 'active' | 'understood' | 'archived' | 'all';
 
+const DAY_MS = 86_400_000;
+// A mistake marked as understood is only re-checked after this many days.
+const UNDERSTOOD_REVIEW_DAYS = 30;
+
 export default function MyMistakes() {
   const { mistakes, setMistakeStatus, removeMistake, recordAttempt, upsertMistake, refresh } = useTrainerData();
   const recordAnswer = useAnswerRecorder('mistake_retry', recordAttempt, upsertMistake, refresh);
@@ -30,6 +34,17 @@ export default function MyMistakes() {
   const dueForReview = useMemo(
     () => mistakes.filter((m) => m.status !== 'archived' && m.nextReviewAt <= Date.now()),
     [mistakes],
+  );
+
+  const markUnderstood = useCallback(
+    (m: MistakeEntry) =>
+      upsertMistake({
+        ...m,
+        status: 'understood',
+        nextReviewAt: Date.now() + UNDERSTOOD_REVIEW_DAYS * DAY_MS,
+        reviewIntervalDays: UNDERSTOOD_REVIEW_DAYS,
+      }),
+    [upsertMistake],
   );
 
   const startPractice = useCallback(() => {
@@ -183,8 +198,16 @@ export default function MyMistakes() {
                       {' → '}
                       <span className="text-success">{m.suggestedCorrection}</span>
                     </p>
-                    {m.explanationRu && (
-                      <p className="mt-1 text-xs text-muted">{m.explanationRu}</p>
+                    {(m.explanationRu || exercise?.explanationRu) && (
+                      <p className="mt-1 text-xs text-muted">{m.explanationRu || exercise?.explanationRu}</p>
+                    )}
+                    {m.status !== 'archived' && (
+                      <p className="mt-1 text-xs text-muted">
+                        {t('mistakes.nextReview')}:{' '}
+                        {m.nextReviewAt <= Date.now()
+                          ? t('mistakes.dueNow')
+                          : new Date(m.nextReviewAt).toLocaleDateString()}
+                      </p>
                     )}
                     <p className="mt-1 text-xs text-muted">
                       {t('mistakes.dateOfMistake')}: {new Date(m.createdAt).toLocaleDateString()}
@@ -196,7 +219,7 @@ export default function MyMistakes() {
                   {m.status !== 'understood' && (
                     <button
                       className="btn btn-secondary"
-                      onClick={() => setMistakeStatus(m.id, 'understood')}
+                      onClick={() => markUnderstood(m)}
                     >
                       <Check className="h-4 w-4" />
                       {t('mistakes.markUnderstood')}
