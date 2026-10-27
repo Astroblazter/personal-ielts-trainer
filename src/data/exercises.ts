@@ -1,6 +1,7 @@
 import type { Exercise } from '@/types';
 import { EXERCISES_BATCH_1 } from '@/data/exercisesBatch1';
 import { EXERCISES_BATCH_2 } from '@/data/exercisesBatch2';
+import { EXERCISES_BATCH_3 } from '@/data/exercisesBatch3';
 
 // Stable, unique IDs prefixed by topic. At least 40 exercises across 15 topics.
 const BASE_EXERCISES: Exercise[] = [
@@ -1016,6 +1017,7 @@ export const GRAMMAR_EXERCISES: Exercise[] = [
   ...BASE_EXERCISES,
   ...EXERCISES_BATCH_1,
   ...EXERCISES_BATCH_2,
+  ...EXERCISES_BATCH_3,
 ];
 
 export function getExercisesByTopic(topicId: string): Exercise[] {
