@@ -1,7 +1,8 @@
 import type { Exercise } from '@/types';
+import { EXERCISES_BATCH_1 } from '@/data/exercisesBatch1';
 
 // Stable, unique IDs prefixed by topic. At least 40 exercises across 15 topics.
-export const GRAMMAR_EXERCISES: Exercise[] = [
+const BASE_EXERCISES: Exercise[] = [
   // ── Present Simple vs Present Continuous ──────────────────────────────
   {
     id: 'psc-001',
@@ -1009,6 +1010,8 @@ export const GRAMMAR_EXERCISES: Exercise[] = [
     relatedTopicId: 'sentence_structure',
   },
 ];
+
+export const GRAMMAR_EXERCISES: Exercise[] = [...BASE_EXERCISES, ...EXERCISES_BATCH_1];
 
 export function getExercisesByTopic(topicId: string): Exercise[] {
   return GRAMMAR_EXERCISES.filter((e) => e.topicId === topicId);
