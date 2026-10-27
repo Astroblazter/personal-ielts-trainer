@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, FlaskConical } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, FlaskConical, RotateCcw } from 'lucide-react';
 import { GRAMMAR_TOPICS } from '@/data/grammarTopics';
 import { getExercisesByTopic } from '@/data/exercises';
 import { useTrainerData } from '@/hooks/useTrainerData';
@@ -18,6 +18,8 @@ export default function GrammarLab() {
   const [exerciseQueue, setExerciseQueue] = useState<Exercise[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [startTime, setStartTime] = useState(0);
+  // Latest result per exercise in the current run of the topic.
+  const [answers, setAnswers] = useState<Record<string, boolean>>({});
 
   const topicExercises = useMemo(() => {
     if (!selectedTopicId) return [];
@@ -31,6 +33,7 @@ export default function GrammarLab() {
       setExerciseQueue(exercises);
       setCurrentIndex(0);
       setStartTime(Date.now());
+      setAnswers({});
     },
     [],
   );
@@ -39,13 +42,15 @@ export default function GrammarLab() {
     setSelectedTopicId(null);
     setExerciseQueue([]);
     setCurrentIndex(0);
+    setAnswers({});
   };
 
   const handleAnswered = useCallback(
     async (result: CheckResult, addToMistakes: boolean, flagged: boolean) => {
       const exercise = exerciseQueue[currentIndex];
       if (!exercise) return;
-      await recordAnswer(exercise, result, addToMistakes, flagged, startTime);
+      const saved = await recordAnswer(exercise, result, addToMistakes, flagged, startTime);
+      if (saved) setAnswers((prev) => ({ ...prev, [exercise.id]: saved.correct }));
     },
     [exerciseQueue, currentIndex, startTime, recordAnswer],
   );
@@ -96,6 +101,32 @@ export default function GrammarLab() {
 
   const current = exerciseQueue[currentIndex];
   const topic = GRAMMAR_TOPICS.find((tp) => tp.id === selectedTopicId);
+
+  if (exerciseQueue.length > 0 && currentIndex >= exerciseQueue.length) {
+    const correct = Object.values(answers).filter(Boolean).length;
+    return (
+      <div>
+        <SectionTitle title={topic?.titleRu ?? ''} subtitle={t('grammar.topicDone')} />
+        <div className="card p-6 text-center">
+          <CheckCircle2 className="mx-auto h-10 w-10 text-success" />
+          <h2 className="mt-3 text-xl font-semibold">{t('grammar.topicDone')}</h2>
+          <p className="mt-2 text-sm text-muted">
+            {t('grammar.topicScore', { correct, total: exerciseQueue.length })}
+          </p>
+          <div className="mt-6 flex justify-center gap-2">
+            <button className="btn btn-primary" onClick={() => selectTopic(selectedTopicId)}>
+              <RotateCcw className="h-4 w-4" />
+              {t('grammar.again')}
+            </button>
+            <button className="btn btn-secondary" onClick={backToTopics}>
+              <ArrowLeft className="h-4 w-4" />
+              {t('grammar.chooseTopic')}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!current) {
     return (

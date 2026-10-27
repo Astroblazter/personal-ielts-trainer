@@ -100,6 +100,9 @@ const ru: Dict = {
     exercises: 'упражнений',
     practiceAll: 'Все темы',
     noExercises: 'В этой теме пока нет упражнений.',
+    topicDone: 'Тема пройдена',
+    topicScore: 'Верных ответов: {correct} из {total}',
+    again: 'Пройти тему ещё раз',
   },
   mistakes: {
     title: 'Мои ошибки',
@@ -117,6 +120,7 @@ const ru: Dict = {
     recurring: 'Повторяющиеся ошибки',
     dateOfMistake: 'Дата ошибки',
     remove: 'Удалить запись',
+    dueNow: 'пора повторить',
   },
   vocabulary: {
     title: 'Словарь',
@@ -417,6 +421,9 @@ const en: Dict = {
     exercises: 'exercises',
     practiceAll: 'All topics',
     noExercises: 'No exercises in this topic yet.',
+    topicDone: 'Topic completed',
+    topicScore: 'Correct answers: {correct} of {total}',
+    again: 'Do this topic again',
   },
   mistakes: {
     title: 'My Mistakes',
@@ -434,6 +441,7 @@ const en: Dict = {
     recurring: 'Recurring errors',
     dateOfMistake: 'Date',
     remove: 'Remove entry',
+    dueNow: 'due now',
   },
   vocabulary: {
     title: 'Vocabulary',
