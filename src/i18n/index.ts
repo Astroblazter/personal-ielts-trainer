@@ -36,6 +36,7 @@ const ru: Dict = {
     all: 'Все',
     correct: 'Верно',
     incorrect: 'Неверно',
+    almostCorrect: 'Почти верно',
     needsReview: 'Требует проверки',
     addMistake: 'Добавить в ошибки',
     flagReview: 'Мой ответ может быть верным',
@@ -198,6 +199,7 @@ const ru: Dict = {
   },
   checker: {
     accepted: 'Принимаются: {answers}',
+    typoHint: 'Похоже на опечатку: проверьте написание. Ответ засчитан как неверный.',
     segmentOkFixWrong: 'Сегмент найден верно, но исправление не совпадает.',
     wrongSegment: 'Неверный сегмент. Правильный — №{n}.',
     errorSegment: 'Ошибочный сегмент — №{n} («{correction}»).',
@@ -357,6 +359,7 @@ const en: Dict = {
     all: 'All',
     correct: 'Correct',
     incorrect: 'Incorrect',
+    almostCorrect: 'Almost correct',
     needsReview: 'Needs review',
     addMistake: 'Add to mistakes',
     flagReview: 'My answer may also be correct',
@@ -519,6 +522,7 @@ const en: Dict = {
   },
   checker: {
     accepted: 'Accepted: {answers}',
+    typoHint: 'Looks like a typo: check the spelling. The answer is counted as incorrect.',
     segmentOkFixWrong: 'You found the right part, but the correction does not match.',
     wrongSegment: 'Wrong part. The correct one is #{n}.',
     errorSegment: 'The error is in part #{n} (“{correction}”).',

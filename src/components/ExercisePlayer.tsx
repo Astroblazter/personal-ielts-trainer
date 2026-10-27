@@ -80,7 +80,7 @@ export function ExercisePlayer({
   const outcomeColor =
     result?.outcome === 'correct'
       ? 'border-l-[var(--color-success)]'
-      : result?.outcome === 'needs_review'
+      : result?.outcome === 'needs_review' || result?.nearMiss
         ? 'border-l-[var(--color-warning)]'
         : 'border-l-[var(--color-error)]';
 
@@ -211,13 +211,13 @@ export function ExercisePlayer({
         <div className={`rounded-r-lg border-l-4 ${outcomeColor} bg-[rgb(var(--color-surface-2))] p-4`}>
           <div className="flex items-center gap-2">
             {result.outcome === 'correct' && <Check className="h-5 w-5 text-success" />}
-            {result.outcome === 'incorrect' && <X className="h-5 w-5 text-error" />}
-            {result.outcome === 'needs_review' && <AlertTriangle className="h-5 w-5 text-warning" />}
+            {result.outcome === 'incorrect' && !result.nearMiss && <X className="h-5 w-5 text-error" />}
+            {(result.outcome === 'needs_review' || result.nearMiss) && <AlertTriangle className="h-5 w-5 text-warning" />}
             <span
               className={`font-medium ${
                 result.outcome === 'correct'
                   ? 'text-success'
-                  : result.outcome === 'needs_review'
+                  : result.outcome === 'needs_review' || result.nearMiss
                     ? 'text-warning'
                     : 'text-error'
               }`}
@@ -226,7 +226,9 @@ export function ExercisePlayer({
                 ? t('common.correct')
                 : result.outcome === 'needs_review'
                   ? t('common.needsReview')
-                  : t('common.incorrect')}
+                  : result.nearMiss
+                    ? t('common.almostCorrect')
+                    : t('common.incorrect')}
             </span>
           </div>
 
