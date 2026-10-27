@@ -8,6 +8,8 @@ export interface CheckResult {
   userAnswer: string;
   suggestedCorrection: string;
   detail?: string;
+  /** Answer is counted as incorrect, but looks like a typo in an otherwise right answer. */
+  nearMiss?: boolean;
 }
 
 // Phones often insert typographic quotes (’ “ ”); treat them as plain ' and ".
@@ -17,6 +19,47 @@ function unifyQuotes(s: string): string {
 
 function normalize(s: string): string {
   return unifyQuotes(s).trim().toLowerCase().replace(/[.,!?;:]+$/g, '').replace(/\s+/g, ' ');
+}
+
+// ── Typo detection ────────────────────────────────────────────────────────
+// A typo is a single wrong, missing, extra or swapped letter inside a word.
+// Changes at the END of a word (-s, -ed, -ing, a different last letter) and
+// short words are NOT typos: they are usually grammar mistakes (melt/melts, a/an).
+
+function oneEditApart(a: string, b: string): boolean {
+  if (a === b || Math.abs(a.length - b.length) > 1) return false;
+  if (a.length === b.length) {
+    let i = 0;
+    while (i < a.length && a[i] === b[i]) i++;
+    if (a.slice(i + 1) === b.slice(i + 1)) return true; // one letter replaced
+    return i + 1 < a.length && a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2); // two letters swapped
+  }
+  const [shorter, longer] = a.length < b.length ? [a, b] : [b, a];
+  let i = 0;
+  while (i < shorter.length && shorter[i] === longer[i]) i++;
+  return shorter.slice(i) === longer.slice(i + 1); // one letter missing or extra
+}
+
+function isEndingChange(a: string, b: string): boolean {
+  if (a.length !== b.length) return a.startsWith(b) || b.startsWith(a);
+  return a.slice(0, -1) === b.slice(0, -1);
+}
+
+function isTypoOfWord(user: string, target: string): boolean {
+  return target.length >= 4 && oneEditApart(user, target) && !isEndingChange(user, target);
+}
+
+/** True if `user` equals one of `accepted` except for a single typo in one word. */
+function isNearMiss(user: string, accepted: string[]): boolean {
+  const userWords = user.split(' ');
+  return accepted.some((target) => {
+    const targetWords = target.split(' ');
+    if (targetWords.length !== userWords.length) return false;
+    const different = targetWords
+      .map((w, i) => [userWords[i], w] as const)
+      .filter(([u, w]) => u !== w);
+    return different.length === 1 && isTypoOfWord(different[0][0], different[0][1]);
+  });
 }
 
 export function checkMultipleChoice(
@@ -47,13 +90,17 @@ export function checkFillBlank(
   const user = normalize(answer);
   const accepted = exercise.data.acceptedAnswers.map(normalize);
   const correct = accepted.includes(user);
+  const nearMiss = !correct && isNearMiss(user, accepted);
   return {
     outcome: correct ? 'correct' : 'incorrect',
     userAnswer: answer,
     suggestedCorrection: exercise.data.acceptedAnswers[0],
+    nearMiss: nearMiss || undefined,
     detail: correct
       ? undefined
-      : t('checker.accepted', { answers: exercise.data.acceptedAnswers.join(', ') }),
+      : nearMiss
+        ? t('checker.typoHint')
+        : t('checker.accepted', { answers: exercise.data.acceptedAnswers.join(', ') }),
   };
 }
 
@@ -75,11 +122,13 @@ export function checkFindError(
     return { outcome: 'correct', userAnswer, suggestedCorrection: exercise.data.correction };
   }
   if (segOk && !corrOk) {
+    const nearMiss = isNearMiss(userCorr, [targetCorr]);
     return {
       outcome: 'incorrect',
       userAnswer,
       suggestedCorrection: exercise.data.correction,
-      detail: t('checker.segmentOkFixWrong'),
+      nearMiss: nearMiss || undefined,
+      detail: nearMiss ? t('checker.typoHint') : t('checker.segmentOkFixWrong'),
     };
   }
   if (!segOk && corrOk) {
