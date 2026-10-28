@@ -13,6 +13,7 @@ import Vocabulary from '@/pages/Vocabulary';
 import ProgressPage from '@/pages/Progress';
 import Settings from '@/pages/Settings';
 import Diagnostic from '@/pages/Diagnostic';
+import StudyPlan from '@/pages/StudyPlan';
 import Reading from '@/pages/Reading';
 import Listening from '@/pages/Listening';
 import Writing from '@/pages/Writing';
@@ -53,6 +54,7 @@ export default function App() {
               <Route path="/mock" element={<MockExam />} />
               <Route path="/progress" element={<ProgressPage />} />
               <Route path="/diagnostic" element={<Diagnostic />} />
+              <Route path="/plan" element={<StudyPlan />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="*" element={<Dashboard />} />
             </Route>
