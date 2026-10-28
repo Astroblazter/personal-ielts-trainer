@@ -17,6 +17,7 @@ const ru: Dict = {
     speaking: 'Говорение',
     mockExam: 'Пробный экзамен',
     progress: 'Прогресс',
+    diagnostic: 'Диагностика',
     settings: 'Настройки',
   },
   common: {
@@ -346,6 +347,7 @@ const en: Dict = {
     speaking: 'Speaking',
     mockExam: 'Mock Exam',
     progress: 'Progress',
+    diagnostic: 'Diagnostic',
     settings: 'Settings',
   },
   common: {
