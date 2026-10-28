@@ -1,13 +1,15 @@
 import { useState, type ReactNode } from 'react';
 import { Check, X, AlertTriangle, BookPlus, Flag, ArrowRight } from 'lucide-react';
-import type { Exercise } from '@/types';
+import type { AttemptRecord, Exercise } from '@/types';
 import { checkExercise, type CheckResult } from '@/engine/checker';
 import { getTopicById } from '@/data/grammarTopics';
 import { t } from '@/i18n';
 
 interface Props {
   exercise: Exercise;
-  source: 'daily_lesson' | 'grammar_lab' | 'mistake_retry';
+  source: AttemptRecord['source'];
+  /** Show the "Retry" button after an answer (default: true). */
+  allowRetry?: boolean;
   onAnswered?: (result: CheckResult, addToMistakes: boolean, flagged: boolean) => void | Promise<void>;
   onAdvance?: () => void;
   advanceLabel?: string;
@@ -24,6 +26,7 @@ export function ExercisePlayer({
   onAdvance,
   advanceLabel,
   showAdvance,
+  allowRetry = true,
 }: Props) {
   const topic = getTopicById(exercise.topicId);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -293,9 +296,11 @@ export function ExercisePlayer({
                 {t('common.flagReview')}
               </button>
             )}
-            <button className="btn btn-ghost" onClick={reset}>
-              {t('common.retry')}
-            </button>
+            {allowRetry && (
+              <button className="btn btn-ghost" onClick={reset}>
+                {t('common.retry')}
+              </button>
+            )}
             {showAdvance && (
               <button className="btn btn-primary ml-auto" onClick={onAdvance}>
                 {advanceLabel ?? t('common.next')}

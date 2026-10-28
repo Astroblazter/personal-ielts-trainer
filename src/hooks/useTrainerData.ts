@@ -271,7 +271,8 @@ export function useTrainerData(): TrainerData {
     const newProfile: UserProfile = {
       ...profile,
       lastDiagnosticAt: rec.takenAt,
-      currentLevel: rec.correctCount / rec.totalQuestions >= 0.7 ? 'B1' : 'not_assessed',
+      currentLevel:
+        rec.estimatedLevel ?? (rec.correctCount / rec.totalQuestions >= 0.7 ? 'B1' : 'not_assessed'),
     };
     await saveProfile(newProfile);
     setProfile(newProfile);
