@@ -169,6 +169,10 @@ export interface DiagnosticResult {
   totalQuestions: number;
   correctCount: number;
   perTopic: Record<string, { correct: number; total: number }>;
+  /** Internal grammar level estimate from the adaptive diagnostic (not an IELTS score). */
+  estimatedLevel?: AssessmentLevel;
+  /** Average difficulty level (0 = A2 ... 3 = B2) the adaptive test settled on. */
+  levelScore?: number;
 }
 
 export interface SessionRecord {
@@ -200,7 +204,15 @@ export interface ProgressStats {
   reviewSuccessRate: number;
 }
 
-export type AssessmentLevel = 'not_assessed' | 'B1' | 'B2' | 'IELTS_5.5' | 'IELTS_6.0' | 'IELTS_6.5';
+export type AssessmentLevel =
+  | 'not_assessed'
+  | 'A2'
+  | 'B1'
+  | 'B1+'
+  | 'B2'
+  | 'IELTS_5.5'
+  | 'IELTS_6.0'
+  | 'IELTS_6.5';
 
 export interface UserProfile {
   currentLevel: AssessmentLevel;
