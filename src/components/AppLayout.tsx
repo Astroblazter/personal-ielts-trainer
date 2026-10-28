@@ -12,6 +12,7 @@ import {
   Mic,
   ClipboardCheck,
   TrendingUp,
+  Target,
   Settings,
   Menu,
   X,
@@ -40,6 +41,7 @@ function navItems(): NavItem[] {
     { to: '/speaking', label: t('nav.speaking'), icon: Mic, enabled: true },
     { to: '/mock', label: t('nav.mockExam'), icon: ClipboardCheck, enabled: true },
     { to: '/progress', label: t('nav.progress'), icon: TrendingUp, enabled: true },
+    { to: '/diagnostic', label: t('nav.diagnostic'), icon: Target, enabled: true },
     { to: '/settings', label: t('nav.settings'), icon: Settings, enabled: true },
   ];
 }
