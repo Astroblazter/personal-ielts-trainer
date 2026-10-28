@@ -8,6 +8,7 @@ import {
   TrendingUp,
   AlertCircle,
   CalendarCheck,
+  ListChecks,
   ArrowRight,
 } from 'lucide-react';
 import { useTrainerData } from '@/hooks/useTrainerData';
@@ -214,6 +215,16 @@ export default function Dashboard() {
           <div className="flex-1">
             <p className="font-medium">{t('nav.diagnostic')}</p>
             <p className="text-sm text-muted">{t('diagnostic.subtitle')}</p>
+          </div>
+          <ArrowRight className="h-5 w-5 text-muted transition-transform group-hover:translate-x-1" />
+        </Link>
+        <Link to="/plan" className="card group flex items-center gap-4 p-5 transition-colors hover:border-[rgb(var(--color-primary))]">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[rgb(var(--color-primary-soft))]">
+            <ListChecks className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <p className="font-medium">{t('nav.plan')}</p>
+            <p className="text-sm text-muted">{t('plan.subtitle')}</p>
           </div>
           <ArrowRight className="h-5 w-5 text-muted transition-transform group-hover:translate-x-1" />
         </Link>
