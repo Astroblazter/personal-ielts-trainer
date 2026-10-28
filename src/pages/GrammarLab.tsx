@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, CheckCircle2, FlaskConical, RotateCcw } from 'lucide-react';
 import { GRAMMAR_TOPICS } from '@/data/grammarTopics';
 import { getExercisesByTopic } from '@/data/exercises';
+import { topicDescription } from '@/data/localize';
 import { useTrainerData } from '@/hooks/useTrainerData';
 import { useAnswerRecorder } from '@/hooks/useAnswerRecorder';
 import type { CheckResult } from '@/engine/checker';
@@ -90,7 +91,7 @@ export default function GrammarLab() {
                     <p className="truncate text-xs text-muted">{count} {t('grammar.exercises')}</p>
                   </div>
                 </div>
-                <p className="mt-3 line-clamp-2 text-xs text-muted">{topic.shortDescriptionRu}</p>
+                <p className="mt-3 line-clamp-2 text-xs text-muted">{topicDescription(topic)}</p>
               </button>
             );
           })}

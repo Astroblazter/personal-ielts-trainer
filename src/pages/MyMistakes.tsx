@@ -5,6 +5,7 @@ import { useAnswerRecorder } from '@/hooks/useAnswerRecorder';
 import type { CheckResult } from '@/engine/checker';
 import { getExerciseById } from '@/data/exercises';
 import { getTopicById } from '@/data/grammarTopics';
+import { exerciseText } from '@/data/localize';
 import type { MistakeEntry, Exercise } from '@/types';
 import { ExercisePlayer } from '@/components/ExercisePlayer';
 import { SectionTitle, EmptyState } from '@/components/ui';
@@ -175,6 +176,7 @@ export default function MyMistakes() {
           {filtered.map((m: MistakeEntry) => {
             const exercise = getExerciseById(m.exerciseId);
             const topic = getTopicById(m.topicId);
+            const explanation = m.explanationRu || (exercise ? exerciseText(exercise).explanation : '');
             return (
               <div key={m.id} className="card p-4">
                 <div className="flex items-start justify-between gap-3">
@@ -198,9 +200,7 @@ export default function MyMistakes() {
                       {' → '}
                       <span className="text-success">{m.suggestedCorrection}</span>
                     </p>
-                    {(m.explanationRu || exercise?.explanationRu) && (
-                      <p className="mt-1 text-xs text-muted">{m.explanationRu || exercise?.explanationRu}</p>
-                    )}
+                    {explanation && <p className="mt-1 text-xs text-muted">{explanation}</p>}
                     {m.status !== 'archived' && (
                       <p className="mt-1 text-xs text-muted">
                         {t('mistakes.nextReview')}:{' '}
