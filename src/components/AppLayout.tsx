@@ -13,6 +13,7 @@ import {
   ClipboardCheck,
   TrendingUp,
   Target,
+  ListChecks,
   Settings,
   Menu,
   X,
@@ -42,6 +43,7 @@ function navItems(): NavItem[] {
     { to: '/mock', label: t('nav.mockExam'), icon: ClipboardCheck, enabled: true },
     { to: '/progress', label: t('nav.progress'), icon: TrendingUp, enabled: true },
     { to: '/diagnostic', label: t('nav.diagnostic'), icon: Target, enabled: true },
+    { to: '/plan', label: t('nav.plan'), icon: ListChecks, enabled: true },
     { to: '/settings', label: t('nav.settings'), icon: Settings, enabled: true },
   ];
 }
