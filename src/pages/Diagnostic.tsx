@@ -1,83 +1,98 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GraduationCap, Check, X, ArrowRight, RotateCcw } from 'lucide-react';
-import { DIAGNOSTIC_QUESTIONS } from '@/data/diagnostic';
+import { GraduationCap, ArrowRight, RotateCcw } from 'lucide-react';
+import { GRAMMAR_EXERCISES } from '@/data/exercises';
 import { getTopicById } from '@/data/grammarTopics';
 import { useTrainerData } from '@/hooks/useTrainerData';
-import type { DiagnosticQuestion } from '@/types';
-import { SectionTitle, EmptyState } from '@/components/ui';
+import { useAnswerRecorder } from '@/hooks/useAnswerRecorder';
+import {
+  DIAGNOSTIC_LENGTH,
+  diagnosticPool,
+  estimateLevel,
+  levelIndex,
+  pickNextExercise,
+  summarize,
+  type DiagnosticAnswer,
+} from '@/engine/diagnostic';
+import type { CheckResult } from '@/engine/checker';
+import type { AssessmentLevel, Exercise, TopicId } from '@/types';
+import { ExercisePlayer } from '@/components/ExercisePlayer';
+import { SectionTitle } from '@/components/ui';
 import { t } from '@/i18n';
 
 type Phase = 'intro' | 'taking' | 'result';
 
-interface Answer {
-  questionId: string;
-  selectedOptionId: string;
-  correct: boolean;
+interface Finished {
+  level: AssessmentLevel;
+  answers: DiagnosticAnswer[];
 }
+
+const topicName = (id: string) => getTopicById(id as TopicId)?.titleRu ?? id;
 
 export default function Diagnostic() {
   const navigate = useNavigate();
-  const { diagnostic, recordDiagnostic, profile } = useTrainerData();
-  const [phase, setPhase] = useState<Phase>('intro');
-  const [currentQ, setCurrentQ] = useState(0);
-  const [answers, setAnswers] = useState<Answer[]>([]);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [showFeedback, setShowFeedback] = useState(false);
+  const { diagnostic, recordDiagnostic, recordAttempt, upsertMistake, refresh, profile } = useTrainerData();
+  const recordAnswer = useAnswerRecorder('diagnostic', recordAttempt, upsertMistake, refresh);
 
-  const questions = DIAGNOSTIC_QUESTIONS;
+  const [phase, setPhase] = useState<Phase>('intro');
+  const [answers, setAnswers] = useState<DiagnosticAnswer[]>([]);
+  const [current, setCurrent] = useState<Exercise | null>(null);
+  const [finished, setFinished] = useState<Finished | null>(null);
+  const shownAtRef = useRef(Date.now());
+
+  const pool = useMemo(() => diagnosticPool(GRAMMAR_EXERCISES), []);
   const lastResult = useMemo(
     () => [...diagnostic].sort((a, b) => b.takenAt - a.takenAt)[0],
     [diagnostic],
   );
 
   const start = () => {
-    setPhase('taking');
-    setCurrentQ(0);
+    const first = pickNextExercise(pool, []);
     setAnswers([]);
-    setSelected(null);
-    setShowFeedback(false);
+    setFinished(null);
+    setCurrent(first);
+    shownAtRef.current = Date.now();
+    setPhase(first ? 'taking' : 'intro');
   };
 
-  const submitAnswer = useCallback(() => {
-    if (selected === null) return;
-    const q = questions[currentQ];
-    const correct = selected === q.correctOptionId;
-    const answer: Answer = {
-      questionId: q.id,
-      selectedOptionId: selected,
-      correct,
-    };
-    setAnswers((prev) => [...prev, answer]);
-    setShowFeedback(true);
-  }, [selected, currentQ, questions]);
+  const handleAnswered = useCallback(
+    async (result: CheckResult, addToMistakes: boolean, flagged: boolean) => {
+      if (!current) return;
+      const answer: DiagnosticAnswer = {
+        exerciseId: current.id,
+        topicId: current.topicId,
+        level: levelIndex(current.difficulty),
+        correct: result.outcome === 'correct',
+      };
+      // Keep one answer per exercise, even if the player reports the same answer again.
+      setAnswers((prev) => (prev.some((a) => a.exerciseId === answer.exerciseId) ? prev : [...prev, answer]));
+      await recordAnswer(current, result, addToMistakes, flagged, shownAtRef.current);
+    },
+    [current, recordAnswer],
+  );
 
-  const next = useCallback(async () => {
-    if (currentQ + 1 >= questions.length) {
-      const all = [...answers];
-      const correctCount = all.filter((a) => a.correct).length;
-      const perTopic: Record<string, { correct: number; total: number }> = {};
-      for (let i = 0; i < questions.length; i++) {
-        const q = questions[i];
-        const a = all[i];
-        const entry = perTopic[q.topicId] ?? { correct: 0, total: 0 };
-        entry.total += 1;
-        if (a?.correct) entry.correct += 1;
-        perTopic[q.topicId] = entry;
+  const advance = useCallback(async () => {
+    if (answers.length < DIAGNOSTIC_LENGTH) {
+      const next = pickNextExercise(pool, answers);
+      if (next) {
+        setCurrent(next);
+        shownAtRef.current = Date.now();
+        return;
       }
-      await recordDiagnostic({
-        takenAt: Date.now(),
-        totalQuestions: questions.length,
-        correctCount,
-        perTopic,
-      });
-      setPhase('result');
-    } else {
-      setCurrentQ((i) => i + 1);
-      setSelected(null);
-      setShowFeedback(false);
     }
-  }, [currentQ, questions, answers, recordDiagnostic]);
+    const estimate = estimateLevel(answers);
+    const { perTopic } = summarize(answers);
+    await recordDiagnostic({
+      takenAt: Date.now(),
+      totalQuestions: answers.length,
+      correctCount: answers.filter((a) => a.correct).length,
+      perTopic,
+      estimatedLevel: estimate.level,
+      levelScore: estimate.score,
+    });
+    setFinished({ level: estimate.level, answers });
+    setPhase('result');
+  }, [answers, pool, recordDiagnostic]);
 
   if (phase === 'intro') {
     return (
@@ -90,9 +105,7 @@ export default function Diagnostic() {
             </div>
             <div className="flex-1">
               <p className="text-sm text-muted">{t('diagnostic.disclaimer')}</p>
-              <p className="mt-2 text-sm">
-                {questions.length} {t('diagnostic.question').toLowerCase()}
-              </p>
+              <p className="mt-2 text-sm">{t('diagnostic.adaptiveNote', { n: DIAGNOSTIC_LENGTH })}</p>
               <button className="btn btn-primary mt-4" onClick={start}>
                 {t('diagnostic.start')}
                 <ArrowRight className="h-4 w-4" />
@@ -100,19 +113,18 @@ export default function Diagnostic() {
             </div>
           </div>
 
-          {lastResult && (
+          {lastResult ? (
             <div className="mt-6 border-t border-[rgb(var(--color-border))] pt-4">
               <h3 className="text-sm font-semibold">{t('diagnostic.lastResult')}</h3>
               <p className="mt-2 text-sm">
                 {t('diagnostic.correctAnswers')}: {lastResult.correctCount} / {lastResult.totalQuestions}
               </p>
               <p className="text-sm text-muted">
-                {t('diagnostic.result')}: {profile.currentLevel}
+                {t('diagnostic.estimate')}:{' '}
+                {profile.currentLevel === 'not_assessed' ? t('dashboard.notAssessed') : profile.currentLevel}
               </p>
             </div>
-          )}
-
-          {!lastResult && (
+          ) : (
             <p className="mt-4 text-sm text-muted">{t('diagnostic.notTaken')}</p>
           )}
         </div>
@@ -120,73 +132,86 @@ export default function Diagnostic() {
     );
   }
 
-  if (phase === 'result') {
-    const correctCount = answers.filter((a) => a.correct).length;
-    const total = questions.length;
-    const perTopic: Record<string, { correct: number; total: number }> = {};
-    for (let i = 0; i < questions.length; i++) {
-      const q = questions[i];
-      const a = answers[i];
-      const entry = perTopic[q.topicId] ?? { correct: 0, total: 0 };
-      entry.total += 1;
-      if (a?.correct) entry.correct += 1;
-      perTopic[q.topicId] = entry;
-    }
-    const topicEntries = Object.entries(perTopic).map(([topicId, v]) => ({
+  if (phase === 'result' && finished) {
+    const { perTopic, perLevel } = summarize(finished.answers);
+    const correctCount = finished.answers.filter((a) => a.correct).length;
+    const total = finished.answers.length;
+    const topics = Object.entries(perTopic).map(([topicId, v]) => ({
       topicId,
       ...v,
       accuracy: Math.round((v.correct / v.total) * 100),
     }));
-    const stronger = [...topicEntries].sort((a, b) => b.accuracy - a.accuracy).slice(0, 3);
-    const weaker = [...topicEntries].sort((a, b) => a.accuracy - b.accuracy).slice(0, 3);
+    const weaker = topics
+      .filter((x) => x.accuracy < 100)
+      .sort((a, b) => a.accuracy - b.accuracy || b.total - a.total)
+      .slice(0, 3);
+    const stronger = topics
+      .filter((x) => x.accuracy === 100)
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 3);
 
     return (
       <div>
         <SectionTitle title={t('diagnostic.result')} />
         <div className="card p-6">
           <div className="text-center">
-            <p className="text-4xl font-semibold">
-              {correctCount} / {total}
+            <p className="text-sm text-muted">{t('diagnostic.estimate')}</p>
+            <p className="mt-1 text-5xl font-semibold">{finished.level}</p>
+            <p className="mt-2 text-sm text-muted">
+              {t('diagnostic.correctAnswers')}: {correctCount} / {total}
             </p>
-            <p className="mt-2 text-sm text-muted">{t('diagnostic.correctAnswers')}</p>
+          </div>
+
+          <div className="mt-6">
+            <h3 className="mb-2 text-sm font-semibold">{t('diagnostic.byLevel')}</h3>
+            <ul className="space-y-1">
+              {perLevel.map((l) => (
+                <li key={l.level} className="flex justify-between text-sm">
+                  <span>{l.level}</span>
+                  <span className="text-muted">
+                    {l.correct} / {l.total}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <div>
-              <h3 className="mb-2 text-sm font-semibold text-success">
-                {t('diagnostic.stronger')}
-              </h3>
-              <ul className="space-y-1">
-                {stronger.map((s) => {
-                  const topic = getTopicById(s.topicId as never);
-                  return (
+              <h3 className="mb-2 text-sm font-semibold text-success">{t('diagnostic.stronger')}</h3>
+              {stronger.length === 0 ? (
+                <p className="text-sm text-muted">—</p>
+              ) : (
+                <ul className="space-y-1">
+                  {stronger.map((s) => (
                     <li key={s.topicId} className="text-sm">
-                      {topic?.titleRu ?? s.topicId}: {s.accuracy}%
+                      {topicName(s.topicId)}: {s.correct}/{s.total}
                     </li>
-                  );
-                })}
-              </ul>
+                  ))}
+                </ul>
+              )}
             </div>
             <div>
-              <h3 className="mb-2 text-sm font-semibold text-error">
-                {t('diagnostic.weaker')}
-              </h3>
-              <ul className="space-y-1">
-                {weaker.map((w) => {
-                  const topic = getTopicById(w.topicId as never);
-                  return (
+              <h3 className="mb-2 text-sm font-semibold text-error">{t('diagnostic.weaker')}</h3>
+              {weaker.length === 0 ? (
+                <p className="text-sm text-muted">{t('diagnostic.noWeak')}</p>
+              ) : (
+                <ul className="space-y-1">
+                  {weaker.map((w) => (
                     <li key={w.topicId} className="text-sm">
-                      {topic?.titleRu ?? w.topicId}: {w.accuracy}%
+                      {topicName(w.topicId)}: {w.correct}/{w.total}
                     </li>
-                  );
-                })}
-              </ul>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
 
-          <div className="mt-4 text-xs text-muted">{t('diagnostic.disclaimer')}</div>
+          <p className="mt-4 text-xs text-muted">{t('diagnostic.topicsNote')}</p>
+          <p className="mt-1 text-xs text-muted">{t('diagnostic.mistakesAdded')}</p>
+          <p className="mt-1 text-xs text-muted">{t('diagnostic.disclaimer')}</p>
 
-          <div className="mt-6 flex gap-2">
+          <div className="mt-6 flex flex-wrap gap-2">
             <button className="btn btn-secondary" onClick={start}>
               <RotateCcw className="h-4 w-4" />
               {t('diagnostic.repeatLater')}
@@ -202,90 +227,35 @@ export default function Diagnostic() {
   }
 
   // taking
-  const q: DiagnosticQuestion = questions[currentQ];
-  const currentAnswer = answers[currentQ];
-  const isAnswered = showFeedback || currentAnswer !== undefined;
+  if (!current) return null;
+  const isLast = answers.length >= DIAGNOSTIC_LENGTH;
+  const number = Math.min(answers.length + (answers.some((a) => a.exerciseId === current.id) ? 0 : 1), DIAGNOSTIC_LENGTH);
 
   return (
     <div>
       <SectionTitle
         title={t('diagnostic.title')}
-        subtitle={`${t('diagnostic.question')} ${currentQ + 1} ${t('diagnostic.of')} ${questions.length}`}
+        subtitle={`${t('diagnostic.question')} ${number} ${t('diagnostic.of')} ${DIAGNOSTIC_LENGTH}`}
       />
 
       <div className="mb-4 h-2 overflow-hidden rounded-full bg-[rgb(var(--color-surface-2))]">
         <div
           className="h-full rounded-full bg-primary transition-all"
-          style={{ width: `${(currentQ / questions.length) * 100}%` }}
+          style={{ width: `${((number - 1) / DIAGNOSTIC_LENGTH) * 100}%` }}
         />
       </div>
 
       <div className="card p-6">
-        <span className="badge badge-primary">{t(`difficulty.${'IELTS'}`)}</span>
-        {(() => {
-          const topic = getTopicById(q.topicId);
-          return topic ? (
-            <span className="badge badge-neutral ml-2">{topic.titleRu}</span>
-          ) : null;
-        })()}
-        <p className="mt-2 text-sm text-muted">{q.instructionRu}</p>
-        <p className="mt-3 text-lg font-medium">{q.questionEn}</p>
-
-        <div className="mt-4 grid gap-2">
-          {q.options.map((o) => {
-            const isSelected = selected === o.id;
-            const isCorrect = o.id === q.correctOptionId;
-            const showCorrect = isAnswered && isCorrect;
-            const showWrong = isAnswered && isSelected && !isCorrect;
-            return (
-              <button
-                key={o.id}
-                onClick={() => !isAnswered && setSelected(o.id)}
-                disabled={isAnswered}
-                className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm transition-colors ${
-                  showCorrect
-                    ? 'border-success bg-[rgb(var(--color-success-soft))]'
-                    : showWrong
-                      ? 'border-error bg-[rgb(var(--color-error-soft))]'
-                      : isSelected
-                        ? 'border-[rgb(var(--color-primary))] bg-[rgb(var(--color-primary-soft))]'
-                        : 'border-[rgb(var(--color-border))] hover:bg-[rgb(var(--color-surface-2))]'
-                }`}
-              >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-medium">
-                  {o.id.toUpperCase()}
-                </span>
-                {o.text}
-                {showCorrect && <Check className="ml-auto h-4 w-4 text-success" />}
-                {showWrong && <X className="ml-auto h-4 w-4 text-error" />}
-              </button>
-            );
-          })}
-        </div>
-
-        {isAnswered && (
-          <div className="mt-4 rounded-lg bg-[rgb(var(--color-surface-2))] p-4 text-sm">
-            <p className="text-muted">{t('common.explanation')}:</p>
-            <p className="mt-1">{q.explanationRu}</p>
-          </div>
-        )}
-
-        <div className="mt-4 flex justify-end gap-2">
-          {!isAnswered ? (
-            <button
-              className="btn btn-primary"
-              onClick={submitAnswer}
-              disabled={selected === null}
-            >
-              {t('common.submit')}
-            </button>
-          ) : (
-            <button className="btn btn-primary" onClick={next}>
-              {currentQ + 1 >= questions.length ? t('diagnostic.finish') : t('common.next')}
-              <ArrowRight className="h-4 w-4" />
-            </button>
-          )}
-        </div>
+        <ExercisePlayer
+          key={current.id}
+          exercise={current}
+          source="diagnostic"
+          onAnswered={handleAnswered}
+          onAdvance={advance}
+          showAdvance
+          allowRetry={false}
+          advanceLabel={isLast ? t('diagnostic.finish') : t('common.next')}
+        />
       </div>
     </div>
   );
