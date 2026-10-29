@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, CheckCircle2, FlaskConical, RotateCcw } from 'lucide-react';
 import { GRAMMAR_TOPICS } from '@/data/grammarTopics';
 import { getExercisesByTopic } from '@/data/exercises';
@@ -6,6 +7,7 @@ import { topicDescription } from '@/data/localize';
 import { useTrainerData } from '@/hooks/useTrainerData';
 import { useAnswerRecorder } from '@/hooks/useAnswerRecorder';
 import type { CheckResult } from '@/engine/checker';
+import { levelLabel, orderFromLevel } from '@/engine/studyPlan';
 import type { Exercise } from '@/types';
 import { ExercisePlayer } from '@/components/ExercisePlayer';
 import { SectionTitle, EmptyState } from '@/components/ui';
@@ -21,29 +23,43 @@ export default function GrammarLab() {
   const [startTime, setStartTime] = useState(0);
   // Latest result per exercise in the current run of the topic.
   const [answers, setAnswers] = useState<Record<string, boolean>>({});
+  // Level the exercise order starts from (set when opened from the study plan).
+  const [startLevel, setStartLevel] = useState<number | null>(null);
+  const [params, setParams] = useSearchParams();
 
   const topicExercises = useMemo(() => {
     if (!selectedTopicId) return [];
     return getExercisesByTopic(selectedTopicId);
   }, [selectedTopicId]);
 
-  const selectTopic = useCallback(
-    (topicId: string) => {
-      setSelectedTopicId(topicId);
-      const exercises = getExercisesByTopic(topicId);
-      setExerciseQueue(exercises);
-      setCurrentIndex(0);
-      setStartTime(Date.now());
-      setAnswers({});
-    },
-    [],
-  );
+  const selectTopic = useCallback((topicId: string, level?: number) => {
+    setSelectedTopicId(topicId);
+    const exercises = getExercisesByTopic(topicId);
+    setExerciseQueue(level === undefined ? exercises : orderFromLevel(exercises, level));
+    setStartLevel(level ?? null);
+    setCurrentIndex(0);
+    setStartTime(Date.now());
+    setAnswers({});
+  }, []);
+
+  // Deep link from the study plan: /grammar?topic=<id>&level=<0..3>
+  useEffect(() => {
+    const topicId = params.get('topic');
+    if (!topicId) return;
+    if (GRAMMAR_TOPICS.some((tp) => tp.id === topicId)) {
+      const raw = params.get('level');
+      const level = raw !== null && raw !== '' ? Number(raw) : NaN;
+      selectTopic(topicId, Number.isInteger(level) && level >= 0 && level <= 3 ? level : undefined);
+    }
+    setParams({}, { replace: true });
+  }, [params, setParams, selectTopic]);
 
   const backToTopics = () => {
     setSelectedTopicId(null);
     setExerciseQueue([]);
     setCurrentIndex(0);
     setAnswers({});
+    setStartLevel(null);
   };
 
   const handleAnswered = useCallback(
@@ -115,7 +131,7 @@ export default function GrammarLab() {
             {t('grammar.topicScore', { correct, total: exerciseQueue.length })}
           </p>
           <div className="mt-6 flex justify-center gap-2">
-            <button className="btn btn-primary" onClick={() => selectTopic(selectedTopicId)}>
+            <button className="btn btn-primary" onClick={() => selectTopic(selectedTopicId, startLevel ?? undefined)}>
               <RotateCcw className="h-4 w-4" />
               {t('grammar.again')}
             </button>
@@ -155,6 +171,12 @@ export default function GrammarLab() {
           </button>
         }
       />
+
+      {startLevel !== null && (
+        <p className="mb-2 text-xs text-muted">
+          {t('grammar.startingFrom', { level: levelLabel(startLevel) })}
+        </p>
+      )}
 
       <div className="mb-4 h-2 overflow-hidden rounded-full bg-[rgb(var(--color-surface-2))]">
         <div
