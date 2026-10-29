@@ -4,15 +4,19 @@ import { CheckCircle2, ListChecks } from 'lucide-react';
 import { useTrainerData } from '@/hooks/useTrainerData';
 import { useApp } from '@/context/AppContext';
 import { getTopicById } from '@/data/grammarTopics';
+import { getExerciseById, getExercisesByTopic } from '@/data/exercises';
 import {
   EXERCISES_PER_TOPIC,
   LESSONS_PER_WEEK,
   PLAN_WEEKS,
   buildPlan,
   currentWeekIndex,
+  levelLabel,
+  recommendedStartLevel,
   targetAccuracy,
   weekProgress,
 } from '@/engine/studyPlan';
+import { levelIndex } from '@/engine/diagnostic';
 import type { TopicId } from '@/types';
 import { SectionTitle } from '@/components/ui';
 import { t, getLang } from '@/i18n';
@@ -139,7 +143,19 @@ export default function StudyPlan() {
 
               <h3 className="mb-2 mt-4 text-sm font-semibold">{t('plan.focusTopics')}</h3>
               <ul className="space-y-3">
-                {p.topics.map((tp) => (
+                {p.topics.map((tp) => {
+                  const topicExercises = getExercisesByTopic(tp.topicId);
+                  const startLevel = recommendedStartLevel({
+                    attempts,
+                    topicId: tp.topicId as TopicId,
+                    overall: level,
+                    levelOf: (id) => {
+                      const ex = getExerciseById(id);
+                      return ex ? levelIndex(ex.difficulty) : undefined;
+                    },
+                    availableLevels: topicExercises.map((e) => levelIndex(e.difficulty)),
+                  });
+                  return (
                   <li key={tp.topicId}>
                     <div className="flex items-center justify-between gap-2 text-sm">
                       <span className="flex items-center gap-2">
@@ -157,8 +173,19 @@ export default function StudyPlan() {
                     <div className="mt-1">
                       <Bar value={(tp.attempts / EXERCISES_PER_TOPIC) * 100} />
                     </div>
+                    <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+                      <span>{t('plan.startLevel', { level: levelLabel(startLevel) })}</span>
+                      <span>{t('plan.topicSize', { n: topicExercises.length })}</span>
+                      <Link
+                        to={`/grammar?topic=${tp.topicId}&level=${startLevel}`}
+                        className="text-primary hover:underline"
+                      >
+                        {t('plan.openTopic')}
+                      </Link>
+                    </p>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
 
               <div className="mt-4 space-y-1 text-sm">
@@ -182,7 +209,8 @@ export default function StudyPlan() {
         })}
       </div>
 
-      <p className="mt-6 text-xs text-muted">{t('plan.disclaimer')}</p>
+      <p className="mt-6 text-xs text-muted">{t('plan.levelNote')}</p>
+      <p className="mt-1 text-xs text-muted">{t('plan.disclaimer')}</p>
     </div>
   );
 }
