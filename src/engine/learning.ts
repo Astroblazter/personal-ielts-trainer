@@ -7,6 +7,7 @@ import type {
   Exercise,
 } from '@/types';
 import { GRAMMAR_TOPICS } from '@/data/grammarTopics';
+import { levelIndex } from '@/engine/diagnostic';
 
 // Local calendar date (YYYY-MM-DD). toISOString() would give the UTC date,
 // which shifts the day for users east/west of UTC around midnight.
@@ -154,13 +155,58 @@ export function rankWeakTopics(
     .map((t) => t.topicId);
 }
 
+/** Topics a lesson should concentrate on (the current week of the study plan). */
+export interface LessonFocus {
+  week: number;
+  topicIds: TopicId[];
+  /** Level (0 = A2 ... 3 = B2) to start each focus topic with. */
+  startLevels: Partial<Record<TopicId, number>>;
+}
+
+/**
+ * Focus exercises: half of the lesson, spread evenly over the focus topics.
+ * Inside a topic, exercises not yet answered correctly come first, then the
+ * ones closest to the recommended start level.
+ */
+function pickFocusExercises(
+  pool: Exercise[],
+  focus: LessonFocus,
+  attempts: AttemptRecord[],
+  count: number,
+  order: (e: Exercise) => number,
+): Exercise[] {
+  const correctBefore = new Map<string, number>();
+  attempts.forEach((a) => {
+    if (a.correct) correctBefore.set(a.exerciseId, (correctBefore.get(a.exerciseId) ?? 0) + 1);
+  });
+  const queues = focus.topicIds.map((topicId) => {
+    const start = focus.startLevels[topicId] ?? 1;
+    return pool
+      .filter((e) => e.topicId === topicId)
+      .sort(
+        (a, b) =>
+          (correctBefore.get(a.id) ?? 0) - (correctBefore.get(b.id) ?? 0) ||
+          Math.abs(levelIndex(a.difficulty) - start) - Math.abs(levelIndex(b.difficulty) - start) ||
+          order(a) - order(b),
+      );
+  });
+  const out: Exercise[] = [];
+  for (let i = 0; out.length < count && queues.some((q) => q.length > 0); i++) {
+    const next = queues[i % queues.length].shift();
+    if (next) out.push(next);
+  }
+  return out;
+}
+
 // Select exercises for a daily lesson: a deterministic mixture.
-// 40% due review mistakes + weakest topics, 60% new/mixed material.
+// Without a focus: 40% due review mistakes + weakest topics, 60% new/mixed material.
+// With a focus (topics of the current plan week): 50% focus topics, 20% review, rest mixed.
 export function selectDailyLesson(
   allExercises: Exercise[],
   attempts: AttemptRecord[],
   mistakes: MistakeEntry[],
   targetCount = 10,
+  focus?: LessonFocus | null,
 ): Exercise[] {
   const reviewedExerciseIds = new Set(attempts.map((a) => a.exerciseId));
   const dueMistakeExerciseIds = new Set(
@@ -174,13 +220,25 @@ export function selectDailyLesson(
   const pool = [...allExercises];
   // Deterministic shuffle by hash of id + date so sequence varies by day.
   const today = todayKey();
-  pool.sort((a, b) => stableHash(a.id + today) - stableHash(b.id + today));
+  const order = (e: Exercise) => stableHash(e.id + today);
+  pool.sort((a, b) => order(a) - order(b));
 
-  const reviewCount = Math.max(1, Math.round(targetCount * 0.4));
   const picked: Exercise[] = [];
   const pickedIds = new Set<string>();
 
-  // First: due mistakes and weak topics
+  // First (with a focus): exercises from the topics of the current plan week
+  if (focus && focus.topicIds.length > 0) {
+    const focusCount = Math.round(targetCount * 0.5);
+    for (const ex of pickFocusExercises(pool, focus, attempts, focusCount, order)) {
+      picked.push(ex);
+      pickedIds.add(ex.id);
+    }
+  }
+
+  const reviewShare = focus && focus.topicIds.length > 0 ? 0.2 : 0.4;
+  const reviewCount = picked.length + Math.max(1, Math.round(targetCount * reviewShare));
+
+  // Then: due mistakes and weak topics
   for (const ex of pool) {
     if (picked.length >= reviewCount) break;
     if (pickedIds.has(ex.id)) continue;
