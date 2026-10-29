@@ -1,10 +1,12 @@
 import { useMemo } from 'react';
-import { TrendingUp, Target, Flame, CheckCircle2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Target, Flame, CheckCircle2 } from 'lucide-react';
 import { useTrainerData } from '@/hooks/useTrainerData';
 import { computeStats } from '@/engine/learning';
+import { MIN_TOPIC_ATTEMPTS, overallTrend, topicTrends } from '@/engine/progressTrend';
 import { getTopicById } from '@/data/grammarTopics';
 import { SectionTitle, StatCard, EmptyState } from '@/components/ui';
 import { Illustration } from '@/components/Illustration';
+import type { TopicId } from '@/types';
 import { t } from '@/i18n';
 
 export default function ProgressPage() {
@@ -15,9 +17,28 @@ export default function ProgressPage() {
     [attempts, sessions, mistakes],
   );
 
+  const trend = useMemo(() => topicTrends(attempts), [attempts]);
+  const overall = useMemo(() => overallTrend(attempts), [attempts]);
+  const mistakeCounts = useMemo(
+    () => ({
+      closed: mistakes.filter((m) => m.status === 'understood').length,
+      active: mistakes.filter((m) => m.status === 'active').length,
+    }),
+    [mistakes],
+  );
+
   if (loading) {
     return <div className="py-12 text-center text-muted">{t('common.loading')}</div>;
   }
+
+  const topicName = (id: string) => getTopicById(id as TopicId)?.titleRu ?? id;
+  const sortedTrends = [...trend.trends].sort((a, b) => b.delta - a.delta);
+  const best = sortedTrends[0] && sortedTrends[0].delta > 0 ? sortedTrends[0] : null;
+  const worst =
+    sortedTrends.length > 0 && sortedTrends[sortedTrends.length - 1].delta < 0
+      ? sortedTrends[sortedTrends.length - 1]
+      : null;
+  const signed = (n: number) => (n > 0 ? `+${n}` : `${n}`);
 
   const maxDayCount = Math.max(...stats.exercisesByDay.map((d) => d.count), 1);
 
@@ -57,6 +78,91 @@ export default function ProgressPage() {
       </div>
 
       <div className="mt-6 card p-5">
+        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted">
+          {t('progress.trendTitle')}
+        </h3>
+        <p className="mb-4 text-xs text-muted">{t('progress.trendNote')}</p>
+
+        {sortedTrends.length === 0 ? (
+          <p className="text-sm text-muted">{t('progress.trendNone', { min: MIN_TOPIC_ATTEMPTS })}</p>
+        ) : (
+          <>
+            {overall && (
+              <p className="mb-3 text-sm font-medium">
+                {t('progress.trendOverall', {
+                  before: overall.before,
+                  after: overall.after,
+                  delta: signed(overall.delta),
+                })}
+              </p>
+            )}
+            {best && (
+              <p className="mb-1 text-sm text-success">
+                {t('progress.trendBest', {
+                  topic: topicName(best.topicId),
+                  before: best.before,
+                  after: best.after,
+                })}
+              </p>
+            )}
+            {worst && (
+              <p className="mb-1 text-sm text-error">
+                {t('progress.trendWatch', {
+                  topic: topicName(worst.topicId),
+                  before: worst.before,
+                  after: worst.after,
+                })}
+              </p>
+            )}
+            <ul className="mt-4 space-y-3">
+              {sortedTrends.map((tr) => (
+                <li key={tr.topicId} className="flex items-center justify-between gap-3 text-sm">
+                  <span className="flex min-w-0 items-center gap-2">
+                    {tr.delta > 0 ? (
+                      <TrendingUp className="h-4 w-4 shrink-0 text-success" />
+                    ) : tr.delta < 0 ? (
+                      <TrendingDown className="h-4 w-4 shrink-0 text-error" />
+                    ) : (
+                      <Minus className="h-4 w-4 shrink-0 text-muted" />
+                    )}
+                    <span className="truncate">{topicName(tr.topicId)}</span>
+                  </span>
+                  <span className="shrink-0 text-right">
+                    <span className="font-medium">
+                      {tr.before}% → {tr.after}%
+                    </span>
+                    <span
+                      className={`ml-2 text-xs ${
+                        tr.delta > 0 ? 'text-success' : tr.delta < 0 ? 'text-error' : 'text-muted'
+                      }`}
+                    >
+                      {signed(tr.delta)}
+                    </span>
+                    <span className="block text-xs text-muted">
+                      {t('progress.trendWindow', { n: tr.window })}
+                      {tr.window < 5 ? ` · ${t('progress.trendLowConf')}` : ''}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
+        {trend.notEnough.length > 0 && (
+          <p className="mt-4 text-xs text-muted">
+            {t('progress.trendFew', {
+              min: MIN_TOPIC_ATTEMPTS,
+              topics: trend.notEnough.map((x) => `${topicName(x.topicId)} (${x.total})`).join(', '),
+            })}
+          </p>
+        )}
+        <p className="mt-2 text-xs text-muted">
+          {t('progress.mistakesClosed', { closed: mistakeCounts.closed, active: mistakeCounts.active })}
+        </p>
+      </div>
+
+      <div className="mt-6 card p-5">
         <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">
           {t('progress.sevenDays')}
         </h3>
@@ -74,7 +180,7 @@ export default function ProgressPage() {
                 />
               </div>
               <span className="text-xs text-muted">
-                {new Date(day.date).toLocaleDateString(undefined, { weekday: 'short' })}
+                {new Date(`${day.date}T00:00:00`).toLocaleDateString(undefined, { weekday: 'short' })}
               </span>
               <span className="text-xs font-medium">{day.count}</span>
             </div>
@@ -91,7 +197,7 @@ export default function ProgressPage() {
             <p className="text-sm text-muted">{t('common.empty')}</p>
           ) : (
             <ul className="space-y-3">
-              {stats.accuracyByTopic
+              {[...stats.accuracyByTopic]
                 .sort((a, b) => a.accuracy - b.accuracy)
                 .map((item) => {
                   const topic = getTopicById(item.topicId);
