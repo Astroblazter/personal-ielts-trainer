@@ -1,5 +1,5 @@
 import type { AssessmentLevel, AttemptRecord, Exercise, MistakeEntry, SessionRecord, TopicId } from '@/types';
-import { dateKey } from '@/engine/learning';
+import { dateKey, type LessonFocus } from '@/engine/learning';
 import { LEVEL_LABELS, levelIndex } from '@/engine/diagnostic';
 
 export const PLAN_WEEKS = 4;
@@ -207,4 +207,35 @@ export function orderFromLevel(exercises: Exercise[], start: number): Exercise[]
 
 export function levelLabel(index: number): string {
   return LEVEL_LABELS[clamp(index, 0, LEVEL_LABELS.length - 1)];
+}
+
+/**
+ * Focus for today's lesson: the topics of the current plan week, each with its
+ * recommended start level. Null when there is no diagnostic or the plan is over.
+ */
+export function lessonFocus(args: {
+  diagnosticAt: number | null;
+  attempts: AttemptRecord[];
+  overall: AssessmentLevel;
+  now: number;
+  exercisesOf: (topicId: TopicId) => Exercise[];
+  levelOf: (exerciseId: string) => number | undefined;
+}): LessonFocus | null {
+  const { diagnosticAt, attempts, overall, now, exercisesOf, levelOf } = args;
+  if (diagnosticAt === null) return null;
+  const plan = buildPlan(diagnosticAt, attempts, now);
+  const index = currentWeekIndex(plan, now);
+  if (index < 1 || index > PLAN_WEEKS) return null;
+  const week = plan[index - 1];
+  const startLevels: LessonFocus['startLevels'] = {};
+  for (const topicId of week.topicIds) {
+    startLevels[topicId] = recommendedStartLevel({
+      attempts,
+      topicId,
+      overall,
+      levelOf,
+      availableLevels: exercisesOf(topicId).map((e) => levelIndex(e.difficulty)),
+    });
+  }
+  return { week: index, topicIds: week.topicIds, startLevels };
 }

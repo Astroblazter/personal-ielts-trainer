@@ -3,11 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { Play, Pause, CheckCircle2, RotateCcw, ArrowRight } from 'lucide-react';
 import { useTrainerData } from '@/hooks/useTrainerData';
 import { useAnswerRecorder } from '@/hooks/useAnswerRecorder';
-import { GRAMMAR_EXERCISES, getExerciseById } from '@/data/exercises';
+import { GRAMMAR_EXERCISES, getExerciseById, getExercisesByTopic } from '@/data/exercises';
 import { selectDailyLesson, todayKey } from '@/engine/learning';
+import { lessonFocus } from '@/engine/studyPlan';
+import { levelIndex } from '@/engine/diagnostic';
+import { getTopicById } from '@/data/grammarTopics';
 import { getLessonState, saveLessonState, clearLessonState } from '@/data/db';
 import type { CheckResult } from '@/engine/checker';
-import type { DailyLessonState, Exercise } from '@/types';
+import type { DailyLessonState, Exercise, TopicId } from '@/types';
 import { ExercisePlayer } from '@/components/ExercisePlayer';
 import { SectionTitle, EmptyState } from '@/components/ui';
 import { Illustration } from '@/components/Illustration';
@@ -17,7 +20,8 @@ type Phase = 'idle' | 'playing' | 'paused' | 'completed';
 
 export default function DailyLesson() {
   const navigate = useNavigate();
-  const { attempts, mistakes, recordAttempt, recordSession, upsertMistake, refresh } = useTrainerData();
+  const { attempts, mistakes, diagnostic, profile, recordAttempt, recordSession, upsertMistake, refresh } =
+    useTrainerData();
   const [state, setState] = useState<DailyLessonState | null>(null);
   const [phase, setPhase] = useState<Phase>('idle');
   const [lessonExercises, setLessonExercises] = useState<Exercise[]>([]);
@@ -27,6 +31,28 @@ export default function DailyLesson() {
   const questionStartRef = useRef<number>(Date.now());
 
   const today = useMemo(() => todayKey(), []);
+
+  // Topics of the current study-plan week (null without a diagnostic or after the plan).
+  const focus = useMemo(() => {
+    const latest = [...diagnostic].sort((a, b) => b.takenAt - a.takenAt)[0];
+    return lessonFocus({
+      diagnosticAt: latest ? latest.takenAt : null,
+      attempts,
+      overall: profile.currentLevel,
+      now: Date.now(),
+      exercisesOf: (topicId) => getExercisesByTopic(topicId),
+      levelOf: (id) => {
+        const ex = getExerciseById(id);
+        return ex ? levelIndex(ex.difficulty) : undefined;
+      },
+    });
+  }, [diagnostic, attempts, profile.currentLevel]);
+  const focusNote = focus
+    ? t('lesson.focusNote', {
+        week: focus.week,
+        topics: focus.topicIds.map((id) => getTopicById(id as TopicId)?.titleRu ?? id).join(', '),
+      })
+    : null;
   const currentIndex = state?.currentIndex;
 
   // Correct answers = latest answer per exercise that is marked correct.
@@ -57,7 +83,7 @@ export default function DailyLesson() {
   }, [loadState]);
 
   const startNew = useCallback(async () => {
-    const selected = selectDailyLesson(GRAMMAR_EXERCISES, attempts, mistakes, 10);
+    const selected = selectDailyLesson(GRAMMAR_EXERCISES, attempts, mistakes, 10, focus);
     const exerciseIds = selected.map((e) => e.id);
     const now = Date.now();
     const fresh: DailyLessonState = {
@@ -71,7 +97,7 @@ export default function DailyLesson() {
     setState(fresh);
     setPhase('playing');
     await saveLessonState(fresh);
-  }, [attempts, mistakes, today]);
+  }, [attempts, mistakes, today, focus]);
 
   const handleAnswered = useCallback(
     async (result: CheckResult, addToMistakes: boolean, flagged: boolean) => {
@@ -137,6 +163,7 @@ export default function DailyLesson() {
             <Play className="h-4 w-4" />
             {t('lesson.startNew')}
           </button>
+          {focusNote && <span className="mt-3 block text-xs">{focusNote}</span>}
         </EmptyState>
       </div>
     );
@@ -196,6 +223,7 @@ export default function DailyLesson() {
               <p className="mt-1 text-xs text-muted">{t('lesson.time')}</p>
             </div>
           </div>
+          {focusNote && <p className="mt-4 text-xs text-muted">{focusNote}</p>}
           <div className="mt-6 flex gap-2">
             <button className="btn btn-primary" onClick={startNew}>
               <Play className="h-4 w-4" />
