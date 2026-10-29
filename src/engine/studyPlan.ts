@@ -1,5 +1,6 @@
-import type { AssessmentLevel, AttemptRecord, MistakeEntry, SessionRecord, TopicId } from '@/types';
+import type { AssessmentLevel, AttemptRecord, Exercise, MistakeEntry, SessionRecord, TopicId } from '@/types';
 import { dateKey } from '@/engine/learning';
+import { LEVEL_LABELS, levelIndex } from '@/engine/diagnostic';
 
 export const PLAN_WEEKS = 4;
 /** Exercises to complete per topic of the week. */
@@ -146,4 +147,64 @@ export function weekProgress(
     activeMistakes,
     completed: topics.length > 0 && topics.every((t) => t.done),
   };
+}
+
+// ── Recommended exercise level inside a topic ─────────────────────────────
+
+function clamp(n: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, n));
+}
+
+/**
+ * Level (0 = A2 ... 3 = B2) to start a topic with.
+ * - no answers in the topic yet: the learner's overall level;
+ * - no correct answers: the easiest level the topic has;
+ * - otherwise: the hardest level answered correctly, one step higher if the
+ *   accuracy in the topic is at least 70%.
+ */
+export function recommendedStartLevel(args: {
+  attempts: AttemptRecord[];
+  topicId: TopicId;
+  overall: AssessmentLevel;
+  /** Level (0..3) of an exercise, or undefined if the exercise is unknown. */
+  levelOf: (exerciseId: string) => number | undefined;
+  /** Levels (0..3) of all exercises of the topic. */
+  availableLevels: number[];
+}): number {
+  const { attempts, topicId, overall, levelOf, availableLevels } = args;
+  if (availableLevels.length === 0) return 1;
+  const lowest = Math.min(...availableLevels);
+  const highest = Math.max(...availableLevels);
+
+  const rows = attempts
+    .filter((a) => a.topicId === topicId)
+    .map((a) => ({ level: levelOf(a.exerciseId), correct: a.correct }))
+    .filter((r): r is { level: number; correct: boolean } => r.level !== undefined);
+
+  let start: number;
+  if (rows.length === 0) {
+    const overallIndex = LEVEL_LABELS.indexOf(overall);
+    start = overallIndex === -1 ? 1 : overallIndex;
+  } else {
+    const correct = rows.filter((r) => r.correct);
+    if (correct.length === 0) {
+      start = lowest;
+    } else {
+      const best = Math.max(...correct.map((r) => r.level));
+      start = correct.length / rows.length >= 0.7 ? best + 1 : best;
+    }
+  }
+  return clamp(start, lowest, highest);
+}
+
+/** Exercises from `start` level upwards first, then the easier ones (closest first). */
+export function orderFromLevel(exercises: Exercise[], start: number): Exercise[] {
+  const level = (e: Exercise) => levelIndex(e.difficulty);
+  const upward = exercises.filter((e) => level(e) >= start).sort((a, b) => level(a) - level(b));
+  const downward = exercises.filter((e) => level(e) < start).sort((a, b) => level(b) - level(a));
+  return [...upward, ...downward];
+}
+
+export function levelLabel(index: number): string {
+  return LEVEL_LABELS[clamp(index, 0, LEVEL_LABELS.length - 1)];
 }
