@@ -5,6 +5,7 @@ import type { SpeakingPrompt, SpeakingPart } from '@/types';
 import { SectionTitle } from '@/components/ui';
 import { Illustration } from '@/components/Illustration';
 import { useTrainerData } from '@/hooks/useTrainerData';
+import { localizedTitle, speakingTips } from '@/data/localize';
 import { t } from '@/i18n';
 
 const PART_LABELS: Record<SpeakingPart, string> = {
@@ -173,7 +174,7 @@ export default function Speaking() {
                 <Mic className="h-5 w-5 text-primary" />
                 <span className="badge badge-primary">{PART_LABELS[p.part]}</span>
               </div>
-              <p className="mt-3 font-medium">{p.titleRu}</p>
+              <p className="mt-3 font-medium">{localizedTitle(p)}</p>
               <p className="mt-1 text-sm text-muted">{p.topicEn}</p>
               <p className="mt-3 text-xs text-muted">
                 {Math.floor(p.suggestedTimeSeconds / 60)}:{(p.suggestedTimeSeconds % 60).toString().padStart(2, '0')} {t('speaking.suggested')}
@@ -191,7 +192,7 @@ export default function Speaking() {
   return (
     <div>
       <SectionTitle
-        title={prompt.titleRu}
+        title={localizedTitle(prompt)}
         subtitle={`${PART_LABELS[prompt.part]} · ${prompt.topicEn}`}
         action={
           <button className="btn btn-ghost" onClick={backToList}>
@@ -318,7 +319,7 @@ export default function Speaking() {
               {t('speaking.tips')}
             </h3>
             <ul className="space-y-2 text-sm text-muted">
-              {prompt.tipsRu.map((tip, i) => (
+              {speakingTips(prompt).map((tip, i) => (
                 <li key={i} className="flex gap-2">
                   <span className="text-primary">•</span>
                   {tip}
