@@ -178,9 +178,9 @@ export const EXERCISE_TEXT_EN: Record<string, ExerciseTextEn> = {
   },
   'prep-003': {
     explanation:
-      'The mistake is not in the preposition: “in London” is correct. This exercise has no incorrect part; it trains attention. The correct version is the same as the original.',
+      'After the verb depend we use the preposition on: depend on. It is a fixed combination that has to be learned.',
     commonMistake:
-      'Not every part is wrong: check the whole construction.',
+      'Learners often translate the preposition from their own language: “depends of” is wrong, English needs on.',
   },
   'prep-004': {
     instruction: 'Insert the preposition of time.',
@@ -476,9 +476,9 @@ export const EXERCISE_TEXT_EN: Record<string, ExerciseTextEn> = {
   },
   'ff-004': {
     explanation:
-      'A prediction based on what we can see now (clouds) is expressed with be going to.',
+      'Next year points to the future, so a state in the future is expressed with will be: Tom will be 18.',
     commonMistake:
-      'For predictions based on visible signs use going to; will is for opinions and spontaneous decisions.',
+      'Do not use the present or past tense when you talk about a future state.',
   },
   'ff-005': {
     explanation:
@@ -1004,9 +1004,9 @@ export const EXERCISE_TEXT_EN: Record<string, ExerciseTextEn> = {
   },
   'prep-011': {
     explanation:
-      'An object lying on a surface: on the table.',
+      'Under means “below something”: under the table.',
     commonMistake:
-      'In means inside something (in the box), on means on a surface (on the table).',
+      'Do not mix up under (below) and on (on top of): on the table, under the table.',
   },
   'qn-010': {
     explanation:

@@ -442,21 +442,21 @@ export const EXERCISES_BATCH_4: Exercise[] = [
     difficulty: 'A2',
     type: 'multiple_choice',
     instructionRu: 'Выберите правильный вариант.',
-    questionEn: 'The book is ___ the table.',
+    questionEn: 'The dog is sleeping ___ the table.',
     data: {
       type: 'multiple_choice',
       options: [
         { id: 'a', text: 'in' },
-        { id: 'b', text: 'on' },
+        { id: 'b', text: 'under' },
         { id: 'c', text: 'at' },
-        { id: 'd', text: 'by' },
+        { id: 'd', text: 'from' },
       ],
       correctOptionId: 'b',
     },
     explanationRu:
-      'Предмет лежит на поверхности: on the table.',
-    exampleEn: 'The book is on the table.',
-    commonMistakeNoteRu: 'In — внутри чего-то (in the box), on — на поверхности (on the table).',
+      'Under означает «под» (ниже чего-то): under the table.',
+    exampleEn: 'The dog is sleeping under the table.',
+    commonMistakeNoteRu: 'Не путайте under (под) и on (на): on the table — на столе, under the table — под столом.',
     relatedTopicId: 'prepositions',
   },
   {

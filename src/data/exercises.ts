@@ -482,15 +482,18 @@ const BASE_EXERCISES: Exercise[] = [
     questionEn: 'Find the incorrect part.',
     data: {
       type: 'find_error',
-      sentenceParts: ['I have been', 'in London', 'for five years.'],
+      sentenceParts: ['It', 'depends of', 'the weather.'],
       errorSegmentIndex: 1,
-      correction: 'in London',
+      correction: 'depends on',
     },
-    explanationRu: 'Ошибка не в предлоге: «in London» верно. В этом упражнении ошибочного сегмента нет — это упражнение на внимательность. Корректный вариант совпадает с оригиналом.',
-    exampleEn: 'I have been in London for five years.',
-    commonMistakeNoteRu: 'Не всегда одна из частей неверна — проверяйте всю конструкцию.',
+    explanationRu:
+      'После глагола depend используется предлог on: depend on. Это устойчивое сочетание, его нужно запомнить.',
+    exampleEn: 'It depends on the weather.',
+    commonMistakeNoteRu:
+      'Под влиянием русского «зависит от» хочется сказать depends of: в английском нужен on.',
     relatedTopicId: 'prepositions',
   },
+
   {
     id: 'prep-004',
     topicId: 'prepositions',
