@@ -144,6 +144,83 @@ export function computeIntervalDays(attempts: number, success: boolean): number 
   return success ? INTERVALS[idx] : Math.max(1, Math.floor(INTERVALS[idx] / 2));
 }
 
+// ── Mistakes notebook: closing and re-opening a mistake ──────────────────
+
+/** A mistake is closed ("understood") after this many correct answers in a row. */
+export const MASTERY_STREAK = 3;
+/** A closed mistake is only checked again after this many days. */
+export const MASTERED_REVIEW_DAYS = 30;
+
+/** Number of correct answers in a row at the end of the history (by time). */
+export function correctStreak(history: AttemptRecord[]): number {
+  const sorted = [...history].sort((a, b) => a.createdAt - b.createdAt);
+  let streak = 0;
+  for (let i = sorted.length - 1; i >= 0 && sorted[i].correct; i--) streak += 1;
+  return streak;
+}
+
+/**
+ * The mistake after a CORRECT answer. `history` holds all answers to this
+ * exercise, including the one just given.
+ * - the next review moves further away (1, 3, 7, 14, 30 days as the streak grows);
+ * - after MASTERY_STREAK correct answers in a row the mistake becomes "understood";
+ * - a mistake already marked "understood" stays closed and is checked again in 30 days;
+ * - an archived mistake is left alone.
+ */
+export function advanceMistake(mistake: MistakeEntry, history: AttemptRecord[], now: number): MistakeEntry {
+  if (mistake.status === 'archived') return mistake;
+  const streak = correctStreak(history);
+  const mastered = mistake.status === 'understood' || streak >= MASTERY_STREAK;
+  const days = mastered ? MASTERED_REVIEW_DAYS : computeIntervalDays(streak, true);
+  return {
+    ...mistake,
+    status: mastered ? 'understood' : mistake.status,
+    nextReviewAt: now + days * DAY_MS,
+    reviewIntervalDays: days,
+  };
+}
+
+export interface MistakeDetails {
+  exerciseId: string;
+  topicId: TopicId;
+  category: MistakeEntry['category'];
+  userAnswer: string;
+  suggestedCorrection: string;
+}
+
+/**
+ * The mistake after a WRONG answer: a new entry, or the existing one counted
+ * again, re-opened ("active") and due for review soon (the wrong-answer interval).
+ */
+export function registerMistake(
+  existing: MistakeEntry | undefined,
+  details: MistakeDetails,
+  now: number,
+  newId: string,
+): MistakeEntry {
+  const attempts = (existing?.attempts ?? 0) + 1;
+  const interval = computeIntervalDays(attempts, false);
+  const latest = {
+    userAnswer: details.userAnswer,
+    suggestedCorrection: details.suggestedCorrection,
+    attempts,
+    status: 'active' as const,
+    nextReviewAt: now + interval * DAY_MS,
+    reviewIntervalDays: interval,
+  };
+  if (existing) return { ...existing, ...latest };
+  return {
+    id: newId,
+    exerciseId: details.exerciseId,
+    topicId: details.topicId,
+    category: details.category,
+    questionEn: '',
+    explanationRu: '',
+    createdAt: now,
+    ...latest,
+  };
+}
+
 // Determine topics that are weakest (lowest accuracy with attempts).
 export function rankWeakTopics(
   accuracyByTopic: { topicId: TopicId; total: number; correct: number; accuracy: number }[],
