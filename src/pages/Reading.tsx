@@ -5,6 +5,7 @@ import type { ReadingPassage, ReadingQuestion } from '@/types';
 import { SectionTitle } from '@/components/ui';
 import { Illustration } from '@/components/Illustration';
 import { useTrainerData } from '@/hooks/useTrainerData';
+import { localizedTitle, questionText } from '@/data/localize';
 import { t } from '@/i18n';
 
 type Answers = Record<string, string>;
@@ -98,7 +99,7 @@ export default function Reading() {
                 <span className="badge badge-primary">{t(`difficulty.${p.difficulty}`)}</span>
                 <span className="text-xs text-muted">{p.sourceLabel}</span>
               </div>
-              <p className="mt-3 font-medium">{p.titleRu}</p>
+              <p className="mt-3 font-medium">{localizedTitle(p)}</p>
               <p className="mt-1 text-sm text-muted">{p.titleEn}</p>
               <p className="mt-3 text-xs text-muted">
                 {p.questions.length} {t('reading.questions')}
@@ -113,7 +114,7 @@ export default function Reading() {
   return (
     <div>
       <SectionTitle
-        title={passage.titleRu}
+        title={localizedTitle(passage)}
         subtitle={passage.titleEn}
         action={
           <button className="btn btn-ghost" onClick={backToList}>
@@ -148,7 +149,7 @@ export default function Reading() {
                     {idx + 1}
                   </span>
                   <div className="flex-1">
-                    <p className="text-xs text-muted">{q.instructionRu}</p>
+                    <p className="text-xs text-muted">{questionText(q).instruction}</p>
                     <p className="mt-1 text-sm font-medium">{q.questionEn}</p>
                   </div>
                   {submitted && (
@@ -204,7 +205,7 @@ export default function Reading() {
 
                 {submitted && (
                   <p className="mt-2 rounded-md bg-[rgb(var(--color-surface-2))] px-3 py-2 text-xs text-muted">
-                    {q.explanationRu}
+                    {questionText(q).explanation}
                   </p>
                 )}
               </div>
