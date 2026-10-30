@@ -5,6 +5,7 @@ import type { ListeningTrack, ListeningQuestion } from '@/types';
 import { SectionTitle } from '@/components/ui';
 import { Illustration } from '@/components/Illustration';
 import { useTrainerData } from '@/hooks/useTrainerData';
+import { localizedTitle, questionText } from '@/data/localize';
 import { t } from '@/i18n';
 
 type Answers = Record<string, string>;
@@ -142,7 +143,7 @@ export default function Listening() {
                 <Headphones className="h-5 w-5 text-primary" />
                 <span className="badge badge-primary">{t(`difficulty.${tr.difficulty}`)}</span>
               </div>
-              <p className="mt-3 font-medium">{tr.titleRu}</p>
+              <p className="mt-3 font-medium">{localizedTitle(tr)}</p>
               <p className="mt-1 text-sm text-muted">{tr.titleEn}</p>
               <p className="mt-3 text-xs text-muted">
                 {tr.durationLabel} · {tr.questions.length} {t('listening.questions')}
@@ -160,7 +161,7 @@ export default function Listening() {
   return (
     <div>
       <SectionTitle
-        title={track.titleRu}
+        title={localizedTitle(track)}
         subtitle={track.titleEn}
         action={
           <button className="btn btn-ghost" onClick={backToList}>
@@ -221,7 +222,7 @@ export default function Listening() {
                   {idx + 1}
                 </span>
                 <div className="flex-1">
-                  <p className="text-xs text-muted">{q.instructionRu}</p>
+                  <p className="text-xs text-muted">{questionText(q).instruction}</p>
                   <p className="mt-1 text-sm font-medium">{q.questionEn}</p>
                 </div>
                 {submitted && (
@@ -277,7 +278,7 @@ export default function Listening() {
 
               {submitted && (
                 <p className="mt-2 rounded-md bg-[rgb(var(--color-surface-2))] px-3 py-2 text-xs text-muted">
-                  {q.explanationRu}
+                  {questionText(q).explanation}
                 </p>
               )}
             </div>

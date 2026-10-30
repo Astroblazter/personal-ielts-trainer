@@ -5,6 +5,7 @@ import type { WritingTask } from '@/types';
 import { SectionTitle } from '@/components/ui';
 import { Illustration } from '@/components/Illustration';
 import { useTrainerData } from '@/hooks/useTrainerData';
+import { checklistLabel, localizedTitle, writingTips } from '@/data/localize';
 import { t } from '@/i18n';
 
 function countWords(text: string): number {
@@ -91,7 +92,7 @@ export default function Writing() {
                   {task.type === 'task1' ? 'Task 1' : 'Task 2'}
                 </span>
               </div>
-              <p className="mt-3 font-medium">{task.titleRu}</p>
+              <p className="mt-3 font-medium">{localizedTitle(task)}</p>
               <p className="mt-1 text-xs text-muted">
                 {task.minWords}–{task.maxWords} {t('writing.words')} · {task.suggestedTimeMinutes} {t('writing.min')}
               </p>
@@ -105,7 +106,7 @@ export default function Writing() {
   return (
     <div>
       <SectionTitle
-        title={task.titleRu}
+        title={localizedTitle(task)}
         subtitle={task.type === 'task1' ? 'IELTS Writing Task 1' : 'IELTS Writing Task 2'}
         action={
           <button className="btn btn-ghost" onClick={backToList}>
@@ -204,7 +205,7 @@ export default function Writing() {
                         {checked && <Check className="h-3 w-3 text-white" />}
                       </span>
                       <span className={checked ? 'text-muted line-through' : ''}>
-                        {item.labelRu}
+                        {checklistLabel(task.id, item)}
                       </span>
                     </button>
                   </li>
@@ -221,7 +222,7 @@ export default function Writing() {
               {t('writing.tips')}
             </h3>
             <ul className="space-y-2 text-sm text-muted">
-              {task.tipsRu.map((tip, i) => (
+              {writingTips(task).map((tip, i) => (
                 <li key={i} className="flex gap-2">
                   <span className="text-primary">•</span>
                   {tip}
