@@ -17,5 +17,7 @@ sources directly (Node 22.6 or newer). `register.mjs` and `loader.mjs` only teac
 | `studyPlan.test.ts` | Four-week plan, week progress, recommended start level, lesson focus |
 | `progressTrend.test.ts` | "Before / after" comparison by topic |
 | `learning.test.ts` | Streak, statistics, spaced repetition, daily lesson selection |
+| `mistakes.test.ts` | Mistakes notebook: closing after three correct answers in a row, re-opening after a mistake |
+| `content.test.ts` | English texts of Reading, Listening, Writing, Speaking |
 
 Not covered: screens (React) and the IndexedDB storage layer, which need a browser environment.

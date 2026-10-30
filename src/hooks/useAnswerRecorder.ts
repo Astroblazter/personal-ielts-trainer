@@ -1,10 +1,9 @@
 import { useCallback, useRef } from 'react';
 import { addAttempt, findMistakeByExerciseId } from '@/data/db';
 import { topicIdToCategory } from '@/hooks/useTrainerData';
+import { registerMistake } from '@/engine/learning';
 import type { CheckResult } from '@/engine/checker';
 import type { AttemptRecord, Exercise, MistakeEntry } from '@/types';
-
-const DAY_MS = 86_400_000;
 
 type RecordAttempt = (
   a: Omit<AttemptRecord, 'id' | 'createdAt'>,
@@ -54,21 +53,20 @@ export function useAnswerRecorder(
           const existing = await findMistakeByExerciseId(exercise.id);
           if (!existing) {
             const now = Date.now();
-            await upsertMistake({
-              id: `mis-${now.toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
-              exerciseId: exercise.id,
-              topicId: exercise.topicId,
-              category: topicIdToCategory(exercise.topicId),
-              questionEn: '',
-              userAnswer: saved.userAnswer,
-              suggestedCorrection: saved.suggestedCorrection,
-              explanationRu: '',
-              createdAt: now,
-              attempts: 1,
-              status: 'active',
-              nextReviewAt: now + DAY_MS,
-              reviewIntervalDays: 1,
-            });
+            await upsertMistake(
+              registerMistake(
+                undefined,
+                {
+                  exerciseId: exercise.id,
+                  topicId: exercise.topicId,
+                  category: topicIdToCategory(exercise.topicId),
+                  userAnswer: saved.userAnswer,
+                  suggestedCorrection: saved.suggestedCorrection,
+                },
+                now,
+                `mis-${now.toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+              ),
+            );
           }
         }
         return lastAttemptRef.current;
