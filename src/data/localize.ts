@@ -1,6 +1,7 @@
 import type { Exercise, GrammarTopic } from '@/types';
 import { getLang } from '@/i18n';
 import { EXERCISE_TEXT_EN, TOPIC_DESCRIPTION_EN } from '@/data/exercisesEn';
+import { QUESTION_TEXT_EN, SPEAKING_TIPS_EN, TITLE_EN, WRITING_TEXT_EN } from '@/data/contentEn';
 
 export interface ExerciseText {
   instruction: string;
@@ -58,4 +59,36 @@ export function exerciseText(ex: Exercise): ExerciseText {
 export function topicDescription(topic: GrammarTopic): string {
   if (getLang() !== 'en') return topic.shortDescriptionRu;
   return TOPIC_DESCRIPTION_EN[topic.id] ?? topic.shortDescriptionRu;
+}
+
+// ── Reading, Listening, Writing and Speaking ─────────────────────────────
+
+/** Title of a reading passage, listening track, writing task or speaking prompt. */
+export function localizedTitle(item: { id: string; titleRu: string; titleEn?: string }): string {
+  if (getLang() !== 'en') return item.titleRu;
+  return TITLE_EN[item.id] ?? item.titleEn ?? item.titleRu;
+}
+
+/** Instruction and explanation of a reading or listening question. */
+export function questionText(q: { id: string; instructionRu: string; explanationRu: string }): {
+  instruction: string;
+  explanation: string;
+} {
+  const en = getLang() === 'en' ? QUESTION_TEXT_EN[q.id] : undefined;
+  return en ?? { instruction: q.instructionRu, explanation: q.explanationRu };
+}
+
+export function writingTips(task: { id: string; tipsRu: string[] }): string[] {
+  if (getLang() !== 'en') return task.tipsRu;
+  return WRITING_TEXT_EN[task.id]?.tips ?? task.tipsRu;
+}
+
+export function checklistLabel(taskId: string, item: { id: string; labelRu: string }): string {
+  if (getLang() !== 'en') return item.labelRu;
+  return WRITING_TEXT_EN[taskId]?.checklist[item.id] ?? item.labelRu;
+}
+
+export function speakingTips(prompt: { id: string; tipsRu: string[] }): string[] {
+  if (getLang() !== 'en') return prompt.tipsRu;
+  return SPEAKING_TIPS_EN[prompt.id] ?? prompt.tipsRu;
 }
