@@ -28,14 +28,7 @@ import {
   deleteVocabWord as dbDeleteVocab,
   findMistakeByExerciseId,
 } from '@/data/db';
-import { computeIntervalDays, todayKey } from '@/engine/learning';
-
-const DAY_MS = 86_400_000;
-
-// A mistake is closed ("understood") after this many correct answers in a row.
-const MASTERY_STREAK = 3;
-// Once closed, it is only re-checked after this many days.
-const MASTERED_REVIEW_DAYS = 30;
+import { advanceMistake, registerMistake, todayKey } from '@/engine/learning';
 
 function genId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -150,54 +143,27 @@ export function useTrainerData(): TrainerData {
       if (a.correct) {
         const open = await findMistakeByExerciseId(a.exerciseId);
         if (open) {
-          const history = (await getAttemptsByExercise(a.exerciseId)).sort(
-            (x, y) => x.createdAt - y.createdAt,
-          );
-          let streak = 0;
-          for (let i = history.length - 1; i >= 0 && history[i].correct; i--) streak += 1;
-          const mastered = streak >= MASTERY_STREAK;
-          const days = mastered ? MASTERED_REVIEW_DAYS : computeIntervalDays(streak, true);
-          const moved: MistakeEntry = {
-            ...open,
-            status: mastered ? 'understood' : open.status,
-            nextReviewAt: Date.now() + days * DAY_MS,
-            reviewIntervalDays: days,
-          };
+          const moved = advanceMistake(open, await getAttemptsByExercise(a.exerciseId), Date.now());
           await updateMistake(moved);
           setMistakes((prev) => prev.map((x) => (x.id === moved.id ? moved : x)));
         }
       }
 
-      // If incorrect and user wants it in mistakes (or by default for wrong answers)
+      // Wrong answer: add it to the notebook (or count the existing entry again).
       if (!a.correct && opts?.addToMistakes) {
         const existing = await findMistakeByExerciseId(a.exerciseId);
-        const attempts = (existing?.attempts ?? 0) + 1;
-        const interval = computeIntervalDays(attempts, false);
-        const mistake: MistakeEntry = existing
-          ? {
-              ...existing,
-              userAnswer: a.userAnswer,
-              suggestedCorrection: a.suggestedCorrection,
-              attempts,
-              nextReviewAt: Date.now() + interval * DAY_MS,
-              reviewIntervalDays: interval,
-              status: 'active',
-            }
-          : {
-              id: genId('mis'),
-              exerciseId: a.exerciseId,
-              topicId: a.topicId,
-              category: topicIdToCategory(a.topicId),
-              questionEn: '',
-              userAnswer: a.userAnswer,
-              suggestedCorrection: a.suggestedCorrection,
-              explanationRu: '',
-              createdAt: Date.now(),
-              attempts,
-              status: 'active',
-              nextReviewAt: Date.now() + interval * DAY_MS,
-              reviewIntervalDays: interval,
-            };
+        const mistake = registerMistake(
+          existing,
+          {
+            exerciseId: a.exerciseId,
+            topicId: a.topicId,
+            category: topicIdToCategory(a.topicId),
+            userAnswer: a.userAnswer,
+            suggestedCorrection: a.suggestedCorrection,
+          },
+          Date.now(),
+          genId('mis'),
+        );
         await addMistake(mistake);
         setMistakes((prev) => {
           const idx = prev.findIndex((x) => x.id === mistake.id);
