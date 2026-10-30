@@ -45,6 +45,39 @@ test('multiple choice and find-the-error exercises are well formed', () => {
   }
 });
 
+/** What the learner actually sees, so that the same task is not in the bank twice. */
+function visibleTask(e: Exercise): string {
+  const d = e.data;
+  let body: string;
+  if (d.type === 'multiple_choice') {
+    // a sentence with a gap is the task itself; a generic question ("Which sentence is correct?") is told apart by its options
+    body = e.questionEn.includes('___') ? e.questionEn : `${e.questionEn}|${d.options.map((o) => o.text).sort().join('/')}`;
+  }
+  else if (d.type === 'fill_blank') body = `${d.promptBefore ?? ''}|${d.promptAfter ?? ''}`;
+  else if (d.type === 'find_error') body = d.sentenceParts.join(' ');
+  else body = e.questionEn;
+  return `${e.topicId}::${e.type}::${body.toLowerCase().trim()}`;
+}
+
+test('no task is repeated in the exercise bank', () => {
+  const seen = new Map<string, string>();
+  for (const e of GRAMMAR_EXERCISES) {
+    const key = visibleTask(e);
+    assert.ok(!seen.has(key), `${e.id} repeats ${seen.get(key)}`);
+    seen.set(key, e.id);
+  }
+});
+
+test('a find-the-error exercise really contains the error', () => {
+  for (const e of GRAMMAR_EXERCISES) {
+    if (e.data.type !== 'find_error') continue;
+    const { sentenceParts, errorSegmentIndex, correction } = e.data;
+    const wrongPart = sentenceParts[errorSegmentIndex].toLowerCase();
+    // the correction must differ from the part that is marked as wrong
+    assert.notEqual(wrongPart.replace(/[.,!?]+$/, ''), correction.toLowerCase().replace(/[.,!?]+$/, ''), `${e.id}: the correction equals the "wrong" part`);
+  }
+});
+
 function correctAnswer(e: Exercise): [unknown, string?] {
   const d = e.data;
   if (d.type === 'multiple_choice') return [d.correctOptionId];
