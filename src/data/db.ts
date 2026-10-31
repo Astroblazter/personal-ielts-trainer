@@ -10,7 +10,7 @@ import type {
   UserProfile,
   VocabWord,
 } from '@/types';
-import { SEED_VOCABULARY } from '@/data/vocabulary';
+import { FIRST_NEW_SEED_ID, SEED_VERSION, SEED_VOCABULARY } from '@/data/vocabulary';
 import { assertUniqueExerciseIds } from '@/data/exercises';
 import { todayKey } from '@/engine/learning';
 
@@ -153,14 +153,56 @@ export async function findMistakeByExerciseId(exerciseId: string): Promise<Mista
 }
 
 // ── Vocabulary ──────────────────────────────────────────────────────────
+const SEED_VERSION_KEY = 'ielts-trainer-vocab-seed-version';
+
+function readSeedVersion(): number {
+  try {
+    return Number(localStorage.getItem(SEED_VERSION_KEY)) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function writeSeedVersion(version: number): void {
+  try {
+    localStorage.setItem(SEED_VERSION_KEY, String(version));
+  } catch {
+    // storage unavailable: the upgrade is simply tried again next time
+  }
+}
+
 export async function getAllVocabulary(): Promise<VocabWord[]> {
   const db = await getDb();
   let vocab = await db.getAll('vocabulary');
   if (vocab.length === 0) {
     await seedVocabulary();
+    writeSeedVersion(SEED_VERSION);
+    return db.getAll('vocabulary');
+  }
+  if (readSeedVersion() < SEED_VERSION) {
+    await upgradeSeedVocabulary(vocab);
+    writeSeedVersion(SEED_VERSION);
     vocab = await db.getAll('vocabulary');
   }
   return vocab;
+}
+
+/**
+ * One-time upgrade of an existing notebook: the words of the first seed get their
+ * theme, and the new seed words are added. Words the user deleted earlier stay deleted.
+ */
+async function upgradeSeedVocabulary(existing: VocabWord[]): Promise<void> {
+  const db = await getDb();
+  const stored = new Map(existing.map((w) => [w.id, w]));
+  const now = Date.now();
+  for (const seed of SEED_VOCABULARY) {
+    const current = stored.get(seed.id);
+    if (current) {
+      if (!current.theme && seed.theme) await db.put('vocabulary', { ...current, theme: seed.theme });
+    } else if (seed.id >= FIRST_NEW_SEED_ID) {
+      await db.put('vocabulary', { ...seed, createdAt: now, nextReviewAt: now });
+    }
+  }
 }
 
 export async function addVocabWord(w: VocabWord): Promise<void> {

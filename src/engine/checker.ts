@@ -62,6 +62,14 @@ function isNearMiss(user: string, accepted: string[]): boolean {
   });
 }
 
+/** Compares a typed word or phrase with the accepted ones: correct, a typo away ("near"), or wrong. */
+export function matchText(user: string, accepted: string[]): 'correct' | 'near' | 'wrong' {
+  const typed = normalize(user);
+  const options = accepted.map(normalize);
+  if (options.includes(typed)) return 'correct';
+  return isNearMiss(typed, options) ? 'near' : 'wrong';
+}
+
 export function checkMultipleChoice(
   exercise: Exercise,
   selectedOptionId: string,

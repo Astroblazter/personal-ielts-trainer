@@ -98,6 +98,19 @@ export interface Exercise {
 
 export type ReviewStatus = 'new' | 'learning' | 'review' | 'mastered';
 
+/** Themes of the vocabulary (the usual IELTS topics). */
+export type VocabTheme =
+  | 'academic'
+  | 'education'
+  | 'work'
+  | 'technology'
+  | 'environment'
+  | 'health'
+  | 'society'
+  | 'culture'
+  | 'travel'
+  | 'other';
+
 export interface VocabWord {
   id: string;
   word: string;
@@ -106,6 +119,10 @@ export interface VocabWord {
   topicId: TopicId;
   difficulty: Difficulty;
   note?: string;
+  /** Vocabulary theme (words added before themes existed have none). */
+  theme?: VocabTheme;
+  /** Spaced-repetition box 0..5; derived from the old counters if missing. */
+  stage?: number;
   createdAt: number;
   reviewStatus: ReviewStatus;
   correctCount: number;
