@@ -251,6 +251,7 @@ const ru: Dict = {
     importError: 'Ошибка импорта: файл некорректен',
   },
   exercise: {
+    yourAnswer: 'Ваш ответ',
     correctionFor: 'Исправление для выбранной части:',
     correctionPlaceholder: 'Введите исправленную форму',
   },
@@ -663,6 +664,7 @@ const en: Dict = {
     importError: 'Import error: invalid file',
   },
   exercise: {
+    yourAnswer: 'Your answer',
     correctionFor: 'Correction for the selected part:',
     correctionPlaceholder: 'Type the corrected form',
   },
@@ -827,6 +829,9 @@ const en: Dict = {
 };
 
 const dictionaries: Record<Lang, Dict> = { ru, en };
+
+/** The dictionaries themselves, for tests that compare the two languages. */
+export const DICTIONARIES = dictionaries;
 
 let currentLang: Lang = 'ru';
 
