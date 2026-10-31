@@ -3,6 +3,7 @@ import { Check, X, AlertTriangle, BookPlus, Flag, ArrowRight } from 'lucide-reac
 import type { AttemptRecord, Exercise } from '@/types';
 import { checkExercise, type CheckResult } from '@/engine/checker';
 import { getTopicById } from '@/data/grammarTopics';
+import { exerciseText } from '@/data/localize';
 import { t } from '@/i18n';
 
 interface Props {
@@ -29,6 +30,7 @@ export function ExercisePlayer({
   allowRetry = true,
 }: Props) {
   const topic = getTopicById(exercise.topicId);
+  const text = exerciseText(exercise);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [fillText, setFillText] = useState('');
   const [selectedSegment, setSelectedSegment] = useState<number | null>(null);
@@ -99,7 +101,7 @@ export function ExercisePlayer({
       </div>
 
       <div>
-        <p className="text-sm text-muted">{exercise.instructionRu}</p>
+        <p className="text-sm text-muted">{text.instruction}</p>
         <p className="mt-3 text-lg font-medium leading-relaxed">{exercise.questionEn}</p>
       </div>
 
@@ -187,7 +189,7 @@ export function ExercisePlayer({
 
           {exercise.type === 'write_sentence' && exercise.data.type === 'write_sentence' && (
             <div className="space-y-2">
-              <p className="text-sm text-muted">{exercise.data.promptRu}</p>
+              <p className="text-sm text-muted">{text.prompt}</p>
               <textarea
                 value={sentenceText}
                 onChange={(e) => setSentenceText(e.target.value)}
@@ -196,7 +198,7 @@ export function ExercisePlayer({
                 autoFocus
               />
               <p className="text-xs text-muted">
-                {exercise.data.notesRu}
+                {text.notes}
               </p>
             </div>
           )}
@@ -237,7 +239,7 @@ export function ExercisePlayer({
 
           <div className="mt-3 space-y-2 text-sm">
             <div>
-              <span className="text-muted">{t('common.submit')}:</span>{' '}
+              <span className="text-muted">{t('exercise.yourAnswer')}:</span>{' '}
               <span className="font-medium">{result.userAnswer || '—'}</span>
             </div>
             {result.outcome !== 'correct' && (
@@ -253,7 +255,7 @@ export function ExercisePlayer({
             )}
             <div>
               <span className="text-muted">{t('common.explanation')}:</span>
-              <p className="mt-1">{exercise.explanationRu}</p>
+              <p className="mt-1">{text.explanation}</p>
             </div>
             <div>
               <span className="text-muted">{t('common.example')}:</span>
@@ -261,7 +263,7 @@ export function ExercisePlayer({
             </div>
             <div>
               <span className="text-muted">{t('common.commonMistake')}:</span>
-              <p className="mt-1 text-muted">{exercise.commonMistakeNoteRu}</p>
+              <p className="mt-1 text-muted">{text.commonMistake}</p>
             </div>
           </div>
 
