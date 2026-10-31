@@ -18,6 +18,7 @@ sources directly (Node 22.6 or newer). `register.mjs` and `loader.mjs` only teac
 | `progressTrend.test.ts` | "Before / after" comparison by topic |
 | `learning.test.ts` | Streak, statistics, spaced repetition, daily lesson selection |
 | `mistakes.test.ts` | Mistakes notebook: closing after three correct answers in a row, re-opening after a mistake |
+| `i18n.test.ts` | Russian and English texts: same keys, same {values}, nothing empty |
 | `vocabulary.test.ts` | Vocabulary: seed words, boxes and review dates, practice sessions, exercises |
 | `content.test.ts` | English texts of Reading, Listening, Writing, Speaking |
 
