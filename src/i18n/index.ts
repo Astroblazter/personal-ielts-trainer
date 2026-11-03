@@ -252,6 +252,7 @@ const ru: Dict = {
   },
   exercise: {
     yourAnswer: 'Ваш ответ',
+    correctAnswer: 'Правильный ответ',
     correctionFor: 'Исправление для выбранной части:',
     correctionPlaceholder: 'Введите исправленную форму',
   },
@@ -665,6 +666,7 @@ const en: Dict = {
   },
   exercise: {
     yourAnswer: 'Your answer',
+    correctAnswer: 'Correct answer',
     correctionFor: 'Correction for the selected part:',
     correctionPlaceholder: 'Type the corrected form',
   },
