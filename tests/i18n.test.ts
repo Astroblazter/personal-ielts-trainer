@@ -37,11 +37,14 @@ test('no text is empty', () => {
   setLang('ru');
 });
 
-test('the line with the learner\'s own answer is called "Your answer", not "Submit"', () => {
+test('the lines of the feedback are called "Your answer" and "Correct answer", not like the buttons', () => {
   setLang('ru');
   assert.equal(t('exercise.yourAnswer'), 'Ваш ответ');
+  assert.equal(t('exercise.correctAnswer'), 'Правильный ответ');
   assert.notEqual(t('exercise.yourAnswer'), t('common.submit'));
+  assert.notEqual(t('exercise.correctAnswer'), t('common.correct'));
   setLang('en');
   assert.equal(t('exercise.yourAnswer'), 'Your answer');
+  assert.equal(t('exercise.correctAnswer'), 'Correct answer');
   setLang('ru');
 });
