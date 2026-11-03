@@ -212,4 +212,3 @@ export const SPEAKING_TIPS_EN: Record<string, string[]> = {
     'Compare the past and the present to show depth.',
   ],
 };
-
