@@ -244,7 +244,7 @@ export function ExercisePlayer({
             </div>
             {result.outcome !== 'correct' && (
               <div>
-                <span className="text-muted">{t('common.correct')}:</span>{' '}
+                <span className="text-muted">{t('exercise.correctAnswer')}:</span>{' '}
                 <span className="font-medium text-primary">{result.suggestedCorrection || '—'}</span>
               </div>
             )}
