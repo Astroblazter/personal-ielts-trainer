@@ -7,7 +7,7 @@ npm test
 ```
 
 No extra packages are needed: the tests use Node's built-in test runner and run the TypeScript
-sources directly (Node 22.6 or newer). `register.mjs` and `loader.mjs` only teach Node the `@/` path alias.
+sources directly (Node 22.6 or newer; the database tests need Node 22.13 or newer and are skipped otherwise). `register.mjs` and `loader.mjs` only teach Node the `@/` path alias.
 
 | File | What it checks |
 |---|---|
@@ -19,6 +19,7 @@ sources directly (Node 22.6 or newer). `register.mjs` and `loader.mjs` only teac
 | `learning.test.ts` | Streak, statistics, spaced repetition, daily lesson selection |
 | `mistakes.test.ts` | Mistakes notebook: closing after three correct answers in a row, re-opening after a mistake |
 | `i18n.test.ts` | Russian and English texts: same keys, same {values}, nothing empty |
+| `migrations.test.ts` | Cloud database: the real SQL migrations applied to an empty SQLite database, constraints, user isolation, sync log |
 | `vocabulary.test.ts` | Vocabulary: seed words, boxes and review dates, practice sessions, exercises |
 | `content.test.ts` | English texts of Reading, Listening, Writing, Speaking |
 
