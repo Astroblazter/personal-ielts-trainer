@@ -1,8 +1,14 @@
 {
   "name": "personal-ielts-trainer",
+  "main": "worker/index.ts",
   "compatibility_date": "2026-10-19",
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // only addresses starting with /api/ go to the Worker; the website is served straight from the files
+    "run_worker_first": ["/api/*"]
   }
+  // Secrets (TEAM_DOMAIN, POLICY_AUD, ALLOWED_EMAILS) are NOT written here: they are set in the
+  // Cloudflare dashboard (Settings -> Variables and Secrets), see docs/AUTH.md.
 }
