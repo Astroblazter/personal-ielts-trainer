@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "typecheck:worker": "tsc --noEmit -p tsconfig.worker.json",
     "test": "node --experimental-strip-types --import ./tests/register.mjs --test-reporter=spec --test \"tests/*.test.ts\""
   },
   "dependencies": {
