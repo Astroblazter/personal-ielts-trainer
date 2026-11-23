@@ -15,5 +15,10 @@ export async function resolve(specifier, context, nextResolve) {
       }
     }
   }
+  // "./types" inside a .ts file means ./types.ts (as in the build tools)
+  if ((specifier.startsWith('./') || specifier.startsWith('../')) && !/\.[a-z]+$/i.test(specifier) && context.parentURL?.endsWith('.ts')) {
+    const candidate = new URL(`${specifier}.ts`, context.parentURL);
+    if (existsSync(fileURLToPath(candidate))) return nextResolve(candidate.href, context);
+  }
   return nextResolve(specifier, context);
 }

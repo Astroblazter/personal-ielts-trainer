@@ -19,6 +19,8 @@ sources directly (Node 22.6 or newer; the database tests need Node 22.13 or newe
 | `learning.test.ts` | Streak, statistics, spaced repetition, daily lesson selection |
 | `mistakes.test.ts` | Mistakes notebook: closing after three correct answers in a row, re-opening after a mistake |
 | `i18n.test.ts` | Russian and English texts: same keys, same {values}, nothing empty |
+| `auth.test.ts` | Sign-in: genuine and forged Cloudflare Access passes, keys cache, fail-closed settings, developer sign-in |
+| `security.test.ts` | Requests from other sites, content type, size limit, safe responses |
 | `migrations.test.ts` | Cloud database: the real SQL migrations applied to an empty SQLite database, constraints, user isolation, sync log |
 | `vocabulary.test.ts` | Vocabulary: seed words, boxes and review dates, practice sessions, exercises |
 | `content.test.ts` | English texts of Reading, Listening, Writing, Speaking |
