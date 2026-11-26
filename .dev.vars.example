@@ -1,0 +1,4 @@
+# Local development only. Copy this file to ".dev.vars" (that file is ignored by git) and change the e-mail.
+# NEVER put these two lines into the Cloudflare dashboard: the production site must not have them.
+ALLOW_DEV_AUTH=true
+DEV_AUTH_EMAIL=you@example.com
