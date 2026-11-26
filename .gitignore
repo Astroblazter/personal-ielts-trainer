@@ -21,3 +21,9 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Cloudflare Wrangler: local secrets and local state (never commit)
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.wrangler
